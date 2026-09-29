@@ -5,8 +5,8 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-appdb}
-      POSTGRES_USER: ${POSTGRES_USER:-appuser}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
+      POSTGRES_USER: ${POSTGRES_USER:-Admin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-pro123}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
