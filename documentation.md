@@ -58,3 +58,35 @@
 - Sobib projekti mahuga
 
 **Mida arvestan:** pean otsustama, kas struktuuri haldab SQL-fail või Django, et need ei läheks lahku.
+
+## Cinema rakenduse arendamise algus
+
+Django rakendus `cinema` asub kaustas `backend/cinema` ja on registreeritud
+projektis `config.settings`. Esimene kontroll-otsapunkt on:
+
+```text
+GET /api/cinema/
+```
+
+Kohalikus Docker-keskkonnas käivita backend nii:
+
+```bash
+docker compose up --build
+```
+
+Seejärel ava `http://localhost:8000/api/cinema/`. Eduka käivituse vastus on:
+
+```json
+{"app": "cinema", "status": "ok"}
+```
+
+Edasine soovituslik järjekord:
+
+1. Loo andmebaasiühendus ja lae olemasolev `project.sql` PostgreSQL-i.
+2. Genereeri olemasoleva SQL-skeemi põhjal esmane mudelite alus:
+   `docker compose exec backend python manage.py inspectdb > cinema/models.py`.
+3. Puhasta mudelid käsitsi, lisa `Meta.db_table` väärtused ning otsusta,
+   kas SQL või Django migratsioonid hakkavad skeemi haldama.
+4. Lisa esmalt filmide lugemise API, seejärel kinode, saalide ja seansside API.
+5. Lisa iga uue kasutusjuhu juurde testid `cinema/tests.py` või eraldi
+   `cinema/tests/` kausta.
