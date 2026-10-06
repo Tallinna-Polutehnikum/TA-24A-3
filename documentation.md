@@ -80,13 +80,45 @@ Seejärel ava `http://localhost:8000/api/cinema/`. Eduka käivituse vastus on:
 {"app": "cinema", "status": "ok"}
 ```
 
+## Andmemudel
+
+Andmebaasi põhiskeem on kirjeldatud Django mudelites failis
+`backend/cinema/models.py`. Mudelid kasutavad `Meta.db_table` ja `db_column`
+väärtusi, et ühendada Pythonis loetavad nimed olemasolevate SQL-tabelite ja
+-veergudega.
+
+Praegu on kaetud järgmised domeeniobjektid:
+
+- kasutajad (`User`)
+- kinod, kinosaalid ja istekohad (`Cinema`, `CinemaHall`, `Seat`)
+- filmid ja žanrid (`Movie`, `Genre`, `MovieGenre`)
+- seansid (`Screening`)
+- broneeringud ja broneeritud kohad (`Booking`, `BookedSeat`)
+- maksed ja arvustused (`Payment`, `Review`)
+
+Mudelitel on lisaks seostele ka andmebaasi piirangud: samas saalis ei saa
+olla kahte sama rea ja numbri kombinatsiooniga kohta, üks istekoht saab olla
+ühe seansi jooksul broneeritud ainult üks kord ning seansi lõpp peab olema
+pärast algust.
+
+Esialgne migratsioon asub failis
+`backend/cinema/migrations/0001_initial.py`. Kui andmebaas luuakse Django
+migratsioonide abil, käivita:
+
+```bash
+docker compose exec backend python manage.py migrate
+```
+
+Kui kasutad olemasoleva skeemi laadimiseks `project.sql` faili, ära loo sama
+skeemi teist korda migratsiooniga. Sellisel juhul tuleb valida üks skeemi
+haldaja: kas SQL-fail või Django migratsioonid. Pärast mudelite muutmist loo
+uus migratsioon käsuga `makemigrations` ja rakenda see käsuga `migrate`.
+
 Edasine soovituslik järjekord:
 
-1. Loo andmebaasiühendus ja lae olemasolev `project.sql` PostgreSQL-i.
-2. Genereeri olemasoleva SQL-skeemi põhjal esmane mudelite alus:
-   `docker compose exec backend python manage.py inspectdb > cinema/models.py`.
-3. Puhasta mudelid käsitsi, lisa `Meta.db_table` väärtused ning otsusta,
-   kas SQL või Django migratsioonid hakkavad skeemi haldama.
-4. Lisa esmalt filmide lugemise API, seejärel kinode, saalide ja seansside API.
-5. Lisa iga uue kasutusjuhu juurde testid `cinema/tests.py` või eraldi
+1. Loo andmebaasiühendus ja lae olemasolev `project.sql` PostgreSQL-i või
+   otsusta kasutada Django esialgset migratsiooni.
+2. Lisa esmalt filmide lugemise API, seejärel kinode, saalide ja seansside API.
+3. Lisa broneerimise, maksete ja arvustuste kasutusjuhud.
+4. Lisa iga uue kasutusjuhu juurde testid `cinema/tests.py` või eraldi
    `cinema/tests/` kausta.
