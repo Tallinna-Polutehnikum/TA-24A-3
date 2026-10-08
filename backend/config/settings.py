@@ -38,7 +38,11 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+<<<<<<< HEAD
     'cinema',
+=======
+    'kino.apps.KinoConfig',
+>>>>>>> f7a394a (Seeder and demodata Add and readme change)
 ]
 
 MIDDLEWARE = [
