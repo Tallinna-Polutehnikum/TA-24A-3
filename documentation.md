@@ -57,7 +57,6 @@
 - Hea dokumentatsioon ja kogukond
 - Sobib projekti mahuga
 
-<<<<<<< HEAD
 **Mida arvestan:** pean otsustama, kas struktuuri haldab SQL-fail või Django, et need ei läheks lahku.
 
 ## Cinema rakenduse arendamise algus
@@ -123,9 +122,3 @@ Edasine soovituslik järjekord:
 3. Lisa broneerimise, maksete ja arvustuste kasutusjuhud.
 4. Lisa iga uue kasutusjuhu juurde testid `cinema/tests.py` või eraldi
    `cinema/tests/` kausta.
-=======
-**Skeemi haldamine:** andmebaasi skeemi haldavad Django mudelid ja migratsioonid.
-`project.sql` on algne skeemikirjeldus, kuid rakenduse käivitamisel seda ei
-impordita ega kasutata skeemi uuendamiseks. Uued skeemimuudatused tuleb teha
-Django mudelites ja salvestada migratsioonidena.
->>>>>>> f7a394a (Seeder and demodata Add and readme change)

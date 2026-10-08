@@ -7,7 +7,7 @@ class User(models.Model):
 	username = models.CharField(max_length=255, db_column='user')
 	first_name = models.CharField(max_length=1024)
 	last_name = models.CharField(max_length=1024)
-	phone_number = models.DecimalField(max_digits=128, decimal_places=0)
+	phone_number = models.CharField(max_length=30)
 	email = models.CharField(max_length=1024)
 	date_of_birth = models.DateField(null=True, blank=True)
 	password_hash = models.TextField()

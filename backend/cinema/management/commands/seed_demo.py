@@ -8,14 +8,14 @@ from django.db import transaction
 from django.utils import timezone
 from faker import Faker
 
-from kino.models import (
-    Auditorium,
+from cinema.models import (
     Booking,
+    BookedSeat,
     Cinema,
+    CinemaHall,
     Genre,
     Movie,
     Payment,
-    ReservedSeat,
     Review,
     Screening,
     Seat,
@@ -41,15 +41,15 @@ class Command(BaseCommand):
 
         if not options['clear'] and any(
             model.objects.exists()
-            for model in (User, Cinema, Auditorium, Seat, Movie, Genre, Screening, Booking)
+            for model in (User, Cinema, CinemaHall, Seat, Movie, Genre, Screening, Booking)
         ):
             raise CommandError(
                 'Kinoandmebaas pole tühi. Olemasolevate andmete asendamiseks käivita käsuga --clear.'
             )
 
         if options['clear']:
-            for model in (ReservedSeat, Payment, Review, Booking, Screening, Seat, Genre,
-                          Movie, Auditorium, User, Cinema):
+            for model in (BookedSeat, Payment, Review, Booking, Screening, Seat, Genre,
+                          Movie, CinemaHall, User, Cinema):
                 model.objects.all().delete()
 
         users = [
@@ -75,24 +75,24 @@ class Command(BaseCommand):
             for index in range(1, 4)
         ]
 
-        auditoriums = []
-        seats_by_auditorium = {}
+        halls = []
+        seats_by_hall = {}
         for cinema in cinemas:
-            for auditorium_number in range(1, 4):
-                auditorium = Auditorium.objects.create(
+            for hall_number in range(1, 4):
+                hall = CinemaHall.objects.create(
                     cinema=cinema,
-                    name=f'Saal {auditorium_number}',
+                    name=f'Saal {hall_number}',
                     screen_type=random.choice(('2D', '3D', 'IMAX')),
                     capacity=96,
                 )
-                auditoriums.append(auditorium)
+                halls.append(hall)
                 seats = [
-                    Seat(auditorium=auditorium, row=chr(65 + row), number=number)
+                    Seat(hall=hall, row=chr(65 + row), number=number)
                     for row in range(8)
                     for number in range(1, 13)
                 ]
                 Seat.objects.bulk_create(seats)
-                seats_by_auditorium[auditorium.pk] = seats
+                seats_by_hall[hall.pk] = seats
 
         genres = [
             Genre.objects.create(name=name)
@@ -105,11 +105,11 @@ class Command(BaseCommand):
             Movie.objects.create(
                 title=fake.catch_phrase()[:255],
                 description=fake.paragraph(nb_sentences=3),
-                duration_minutes=random.randint(80, 180),
+                duration=random.randint(80, 180),
                 release_date=fake.date_between(start_date='-8y', end_date='today'),
                 age_rating=random.choice(('Perefilm', 'MS-12', 'K-14', 'K-16')),
                 language=random.choice(('eesti', 'inglise', 'soome')),
-                is_small_value=random.choice((True, False)),
+                is_featured=random.choice((True, False)),
             )
             for _ in range(20)
         ]
@@ -118,7 +118,7 @@ class Command(BaseCommand):
         screenings = []
         screening_seats = {}
         for index in range(120):
-            auditorium = auditoriums[index % len(auditoriums)]
+            hall = halls[index % len(halls)]
             movie = movies[index % len(movies)]
             starts_at = now + timedelta(
                 days=random.randint(-20, 30),
@@ -126,15 +126,15 @@ class Command(BaseCommand):
             )
             screening = Screening.objects.create(
                 movie=movie,
-                auditorium=auditorium,
-                starts_at=starts_at,
-                ends_at=starts_at + timedelta(minutes=movie.duration_minutes + 15),
+                hall=hall,
+                start_time=starts_at,
+                end_time=starts_at + timedelta(minutes=movie.duration + 15),
                 language=movie.language,
                 subtitles=random.choice(('eesti', 'inglise', None)),
-                price=Decimal(random.randrange(700, 1601)) / 100,
+                base_price=Decimal(random.randrange(700, 1601)) / 100,
             )
             screenings.append(screening)
-            screening_seats[screening.pk] = seats_by_auditorium[auditorium.pk]
+            screening_seats[screening.pk] = seats_by_hall[hall.pk]
 
         bookings = []
         booked_seats = set()
@@ -142,7 +142,7 @@ class Command(BaseCommand):
             seat_options = screening_seats[screening.pk]
             seat_count = random.randint(1, 3)
             seats = random.sample(seat_options, seat_count)
-            price = screening.price
+            price = screening.base_price
             booking = Booking.objects.create(
                 user=users[index % len(users)],
                 screening=screening,
@@ -151,7 +151,7 @@ class Command(BaseCommand):
             )
             bookings.append(booking)
             for seat in seats:
-                ReservedSeat.objects.create(
+                BookedSeat.objects.create(
                     booking=booking,
                     screening=screening,
                     seat=seat,
