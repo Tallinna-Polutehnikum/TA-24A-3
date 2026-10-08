@@ -1,124 +1,143 @@
-# Backend: keel, ORM ja raamistik
+# Tehniline dokumentatsioon
 
-**Stack:** Python + Django, Vue + Vite, PostgreSQL
+## Ülevaade
 
-## Keel: Python
+TA-24A-3 kinoprojekt koosneb kolmest Docker Compose'i teenusest:
 
-- Loetav ja lihtne õppida
-- Hea Postgresi tugi (`psycopg`)
-- Frontend (Vue) on eraldi, suhtlus käib JSON API kaudu, seega keel ei pea sama olema
+| Teenus | Tehnoloogia | Port | Roll |
+| --- | --- | --- | --- |
+| `frontend` | Vue 3 + Vite, Node.js 20 | 5173 | kasutajaliidese arenduskonteiner |
+| `backend` | Python 3.12 + Django 5 | 8000 | domeenimudelid ja HTTP API |
+| `db` | PostgreSQL 16 | 5432 | andmete püsiv salvestamine |
 
-## Variandid
+Frontend kasutab Vite'i arendusserverit ja backend kasutab Django
+arendusserverit. Andmebaasiühenduse seadistus tuleb keskkonnamuutujatest;
+Docker Compose'is on vaikimisi andmebaas `appdb`, kasutaja `Admin` ja parool
+`pro123`.
 
-### A) Django + Django ORM + Django REST Framework (DRF)
+## Praegune funktsionaalsus
 
-**Plussid**
-- Postgres on Djangos põhitoetatud
-- `inspectdb` loeb olemasoleva andmebaasi mudeliteks (sobib, kuna `project.sql` on enne valmis)
-- Migratsioonid ja adminpaneel on kaasas
-- Postgresi võimalused (CHECK, JSONField, `ExclusionConstraint` ristuvate seansside vältimiseks)
-- Suur kogukond ja palju materjali
+### Backend
 
-**Miinused**
-- Django on "kood enne" tööriist, `inspectdb` mudelid vajavad käsitsi puhastamist
-- Tuleb valida: kas tabeleid haldab SQL-fail (`managed = False`) või Django migratsioonid
-- DRF on omaette õppimine (serializer'id, viewset'id)
+Django projekt asub kaustas [`backend`](backend) ja rakendus kaustas
+[`backend/cinema`](backend/cinema). Rakendus on registreeritud
+`config.settings` seadistuses.
 
-### B) Django + Django ORM + Django Ninja
-
-**Plussid**
-- Sama ORM ja `inspectdb` nagu A
-- Lühem ja loetavam API kood (tüübivihjed)
-- Automaatne API dokumentatsioon
-
-**Miinused**
-- Väiksem kogukond ja vähem õppematerjali kui DRF-il
-- Tunnis ei käsitletud
-- Filtreerimine ja lehekülgedeks jagamine tuleb rohkem käsitsi teha
-
-### C) FastAPI + SQLAlchemy + Alembic
-
-**Plussid**
-- Täielik SQL-i kontroll, sobib keeruliste aruannete jaoks
-- SQLAlchemy oskab olemasolevat andmebaasi sisse lugida (reflection)
-- Kiire ja automaatne API dokumentatsioon
-
-**Miinused**
-- Autentimine, admin ja muu tuleb ise kokku panna
-- Järsem õppimiskõver
-- Ei kasuta Djangot, mis on minu valitud stack
-- Projekti mahu jaoks liiga võimas
-
-## Valik: Django + Django ORM + DRF
-
-- Sobib minu stackiga, lisatööriistu pole vaja
-- `inspectdb` lahendab SQL-first töövoo
-- Adminpaneel, kasutajad ja migratsioonid on valmis, saan keskenduda kinoloogikale
-- Hea dokumentatsioon ja kogukond
-- Sobib projekti mahuga
-
-**Mida arvestan:** pean otsustama, kas struktuuri haldab SQL-fail või Django, et need ei läheks lahku.
-
-## Cinema rakenduse arendamise algus
-
-Django rakendus `cinema` asub kaustas `backend/cinema` ja on registreeritud
-projektis `config.settings`. Esimene kontroll-otsapunkt on:
+Praegu on realiseeritud üks kontroll-otspunkt:
 
 ```text
 GET /api/cinema/
 ```
 
-Kohalikus Docker-keskkonnas käivita backend nii:
-
-```bash
-docker compose up --build
-```
-
-Seejärel ava `http://localhost:8000/api/cinema/`. Eduka käivituse vastus on:
+Vastus:
 
 ```json
 {"app": "cinema", "status": "ok"}
 ```
 
+Admini URL on `/admin/`, kuid eraldi autentimise, administraatori kasutaja
+loomise ega domeeni CRUD-otspunktide rakendust projekt praegu ei sisalda.
+
+### Frontend
+
+Frontend on Vue 3 ja Vite'i algne rakendus. Käivituv vaade kasutab komponenti
+`frontend/src/components/HelloWorld.vue`; kinode, filmide, seansside,
+broneeringute ja maksete kasutajaliides tuleb veel ehitada.
+
 ## Andmemudel
 
-Andmebaasi põhiskeem on kirjeldatud Django mudelites failis
-`backend/cinema/models.py`. Mudelid kasutavad `Meta.db_table` ja `db_column`
-väärtusi, et ühendada Pythonis loetavad nimed olemasolevate SQL-tabelite ja
--veergudega.
+Andmebaasi domeenimudelid on failis
+[`backend/cinema/models.py`](backend/cinema/models.py). Pythonis kasutatakse
+ingliskeelseid väljanimetusi ja olemasoleva SQL-skeemiga sidumiseks
+`Meta.db_table` ning `db_column` väärtusi.
 
-Praegu on kaetud järgmised domeeniobjektid:
+Praegu on kirjeldatud järgmised objektid:
 
-- kasutajad (`User`)
-- kinod, kinosaalid ja istekohad (`Cinema`, `CinemaHall`, `Seat`)
-- filmid ja žanrid (`Movie`, `Genre`, `MovieGenre`)
-- seansid (`Screening`)
-- broneeringud ja broneeritud kohad (`Booking`, `BookedSeat`)
-- maksed ja arvustused (`Payment`, `Review`)
+- `User` – kasutajad;
+- `Cinema`, `CinemaHall`, `Seat` – kinod, saalid ja istekohad;
+- `Movie`, `Genre`, `MovieGenre` – filmid ja žanrid;
+- `Screening` – seansid;
+- `Booking`, `BookedSeat` – broneeringud ja broneeritud kohad;
+- `Payment` – maksed;
+- `Review` – arvustused.
 
-Mudelitel on lisaks seostele ka andmebaasi piirangud: samas saalis ei saa
-olla kahte sama rea ja numbri kombinatsiooniga kohta, üks istekoht saab olla
-ühe seansi jooksul broneeritud ainult üks kord ning seansi lõpp peab olema
-pärast algust.
+Olulisemad andmebaasipiirangud:
 
-Esialgne migratsioon asub failis
-`backend/cinema/migrations/0001_initial.py`. Kui andmebaas luuakse Django
-migratsioonide abil, käivita:
+- istekoht on saalis rea ja numbri kombinatsiooni järgi kordumatu;
+- filmi ja žanri seos on kordumatu;
+- üks istekoht saab sama seansi jooksul olla broneeritud ainult üks kord;
+- seansi lõppaeg peab olema algusajast hilisem;
+- arvustuse hinne on vahemikus 1–5.
 
-```bash
+## Skeemi haldamine ja migratsioonid
+
+Skeemi haldavad Django migratsioonid. Esialgne migratsioon on
+[`backend/cinema/migrations/0001_initial.py`](backend/cinema/migrations/0001_initial.py)
+ja telefoni välja täpsustus on
+[`backend/cinema/migrations/0002_alter_user_phone_number.py`](backend/cinema/migrations/0002_alter_user_phone_number.py).
+
+Käivita olemasolevate migratsioonide rakendamiseks:
+
+```powershell
 docker compose exec backend python manage.py migrate
 ```
 
-Kui kasutad olemasoleva skeemi laadimiseks `project.sql` faili, ära loo sama
-skeemi teist korda migratsiooniga. Sellisel juhul tuleb valida üks skeemi
-haldaja: kas SQL-fail või Django migratsioonid. Pärast mudelite muutmist loo
-uus migratsioon käsuga `makemigrations` ja rakenda see käsuga `migrate`.
+Mudelite muutmisel loo uus migratsioon ja rakenda see:
 
-Edasine soovituslik järjekord:
+```powershell
+docker compose exec backend python manage.py makemigrations
+docker compose exec backend python manage.py migrate
+```
 
-1. Loo andmebaasiühendus ja lae olemasolev `project.sql` PostgreSQL-i või
-   otsusta kasutada Django esialgset migratsiooni.
-2. Lisa esmalt filmide lugemise API, seejärel kinode, saalide ja seansside API.
-3. Lisa broneerimise, maksete ja arvustuste kasutusjuhud.
-4. Lisa iga uue kasutusjuhu juurde testid `cinema/tests.py` või eraldi
-   `cinema/tests/` kausta.
+Juurkaustas olevat `project.sql` faili Docker Compose'i käivitamisel
+automaatselt ei laadita. Seda ei tohi kasutada sama skeemi paralleelse
+haldajaena koos Django migratsioonidega; projekti praegune skeemiomanik on
+Django.
+
+## Demoandmed
+
+Kohandatud management-käsk
+[`backend/cinema/management/commands/seed_demo.py`](backend/cinema/management/commands/seed_demo.py)
+kasutab Fakerit ja fikseeritud juhuarvu seemneid, et genereerida korratavad
+andmed.
+
+```powershell
+docker compose exec backend python manage.py seed_demo
+```
+
+Käsk katkestab töö, kui andmebaasis on juba kinoandmeid. Olemasolevate
+andmete kustutamiseks ja demoandmete uuesti loomiseks tuleb `--clear` lisada
+teadlikult:
+
+```powershell
+docker compose exec backend python manage.py seed_demo --clear
+```
+
+Seeder loob 40 kasutajat, 3 kino, 9 saali, 864 istekohta, 20 filmi,
+10 žanri, 120 seanssi, 120 broneeringut, 120 makset ja 60 arvustust.
+
+## Testimine ja ehitamine
+
+Backendi testid:
+
+```powershell
+docker compose exec backend python manage.py test
+```
+
+Testid kontrollivad praegu tervisekontrolli otspunkti. Frontendi tootmisjärgu
+koostamiseks:
+
+```powershell
+docker compose exec frontend npm run build
+```
+
+## Arendusjärjekord
+
+Soovituslik järgmine tööjärjekord:
+
+1. lisada backendile filmide, kinode, saalide ja seansside lugemise API;
+2. lisada kasutajate autentimine ning sisendandmete valideerimine;
+3. rakendada broneerimise, istekohtade lukustamise ja maksete töövood;
+4. lisada arvustuste API;
+5. siduda Vue kasutajaliides backendiga ning lisada kasutusjuhud;
+6. lisada iga uue kasutusjuhu juurde automaattestid.
