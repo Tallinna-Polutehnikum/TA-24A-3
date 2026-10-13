@@ -23,7 +23,7 @@ Django projekt asub kaustas [`backend`](backend) ja rakendus kaustas
 [`backend/cinema`](backend/cinema). Rakendus on registreeritud
 `config.settings` seadistuses.
 
-Praegu on realiseeritud üks kontroll-otspunkt:
+Tervisekontroll:
 
 ```text
 GET /api/cinema/
@@ -35,8 +35,26 @@ Vastus:
 {"app": "cinema", "status": "ok"}
 ```
 
+Avalikud kataloogi lugemis-otspunktid:
+
+| Meetod | Tee | Vastus |
+| --- | --- | --- |
+| `GET` | `/api/cinema/movies/` | Filmide loend, sh žanrid |
+| `GET` | `/api/cinema/movies/<id>/` | Üks film |
+| `GET` | `/api/cinema/cinemas/` | Kinode loend |
+| `GET` | `/api/cinema/cinemas/<id>/` | Üks kino |
+| `GET` | `/api/cinema/halls/` | Saalide loend koos kino nimega |
+| `GET` | `/api/cinema/halls/<id>/` | Üks saal |
+| `GET` | `/api/cinema/screenings/` | Seansside loend koos filmi, saali ja kino nimedega |
+| `GET` | `/api/cinema/screenings/<id>/` | Üks seanss |
+
+Loendite JSON-kuju on `{"results": [...]}`. ID-ga detailpäring tagastab
+objekti otse või tundmatu ID korral HTTP 404. Kataloogi otspunktid lubavad
+GET- ja HEAD-päringuid ning tagastavad kirjutuspäringutele HTTP 405. Need ei
+väljasta kasutaja-, broneeringu- ega makseandmeid.
+
 Admini URL on `/admin/`, kuid eraldi autentimise, administraatori kasutaja
-loomise ega domeeni CRUD-otspunktide rakendust projekt praegu ei sisalda.
+loomise ega kirjutamis-otspunktide rakendust projekt praegu ei sisalda.
 
 ### Frontend
 
@@ -135,9 +153,8 @@ docker compose exec frontend npm run build
 
 Soovituslik järgmine tööjärjekord:
 
-1. lisada backendile filmide, kinode, saalide ja seansside lugemise API;
-2. lisada kasutajate autentimine ning sisendandmete valideerimine;
-3. rakendada broneerimise, istekohtade lukustamise ja maksete töövood;
-4. lisada arvustuste API;
-5. siduda Vue kasutajaliides backendiga ning lisada kasutusjuhud;
-6. lisada iga uue kasutusjuhu juurde automaattestid.
+1. lisada kasutajate autentimine ning sisendandmete valideerimine;
+2. rakendada broneerimise, istekohtade lukustamise ja maksete töövood;
+3. lisada arvustuste API;
+4. siduda Vue kasutajaliides backendiga ning lisada kasutusjuhud;
+5. lisada iga uue kasutusjuhu juurde automaattestid.
