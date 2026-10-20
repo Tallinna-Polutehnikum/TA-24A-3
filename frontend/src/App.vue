@@ -1,14 +1,14 @@
-<script setup lang="ts">
-import router from './router';
-
-</script>
-
 <template>
   <nav>
-    <routerLink to="/">Home</routerLink>
-    <routerLink to="/about">About</routerLink>
+    <RouterLink to="/">Home</RouterLink>
+    <RouterLink to="/KinoKava">KinoKava</RouterLink>
+    <RouterLink to="/filmid">Filmid</RouterLink>
+    <RouterLink to="/kinod">Kinod</RouterLink>
+    <RouterLink to="/kasutaja">Kasutaja</RouterLink>
+    <RouterLink to="/zanrid">Žanrid</RouterLink>
+    <RouterLink to="/broneerimine">Broneerimine</RouterLink>
   </nav>
   <main>
-      <RouterView />
+    <RouterView />
   </main>
 </template>
