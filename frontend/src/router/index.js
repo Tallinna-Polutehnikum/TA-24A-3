@@ -1,28 +1,27 @@
 import { createRouter, createWebHistory } from 'vue-router'
 
 import HomeView from '../views/HomeView.vue'
-import AboutView from '../views/aboutView.vue'
-import { Component } from 'react'
+import AboutView from '../views/AboutView.vue'
 
 const router = createRouter({
     history: createWebHistory(),
 
-    router: [
+    routes: [
         {
             path:"/",
             name:"home",
-            Component: HomeView
+            component: HomeView
         },
         {
             path:"/about",
             name:"about",
-            Component: AboutView
+            component: AboutView
         },
         //dynamic router
         {
             path: "/users/:id",
             name: "user",
-            Component: () => import("../views/UserView.vue")
+            component: () => import("../views/UserView.vue")
         }
     ]
 })
