@@ -106,6 +106,10 @@ docker compose exec frontend npm run build
 Täiendav tehniline kirjeldus, andmemudel ja arendusplaan on failis
 [`documentation.md`](documentation.md).
 
+Andmebaasi struktuur on failis [`project.sql`](project.sql). Backendi keele,
+ORM-ide ja raamistike võrdlus ning valiku põhjendus on failis
+[`BACKEND.md`](BACKEND.md).
+
 ## Git workflow 
 
 Kasutame töövoogu, kus `main` sisaldab alati viimast stabiilset versiooni.
