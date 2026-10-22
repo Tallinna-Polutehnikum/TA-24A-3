@@ -58,9 +58,29 @@ loomise ega kirjutamis-otspunktide rakendust projekt praegu ei sisalda.
 
 ### Frontend
 
-Frontend on Vue 3 ja Vite'i algne rakendus. Käivituv vaade kasutab komponenti
-`frontend/src/components/HelloWorld.vue`; kinode, filmide, seansside,
-broneeringute ja maksete kasutajaliides tuleb veel ehitada.
+Frontend on Vue 3 ja Vite'i rakendus, mille põhikomponent paigaldab ühise
+navigatsiooni ja kuvab aktiivse marsruudi vaate. Navigatsioon asub failis
+[`frontend/src/components/Navbar.vue`](frontend/src/components/Navbar.vue) ja
+marsruudid failis
+[`frontend/src/router/index.js`](frontend/src/router/index.js).
+
+Praegu on olemas järgmised marsruudid ja vaated:
+
+| Marsruut | Vaade | Hetkeseis |
+| --- | --- | --- |
+| `/` | avaleht | alustekst |
+| `/KinoKava` | kinokava | alustekst |
+| `/filmid` | filmid | alustekst |
+| `/kinod` | kinod | alustekst |
+| `/kasutaja` | kasutaja | alustekst |
+| `/users/<id>` | kasutaja ID järgi | kuvab marsruudi ID-d |
+| `/zanrid` | žanrid | alustekst |
+| `/broneerimine` | broneerimine | alustekst |
+
+Vaated ei tarbi praegu Django API-d. Kinode, filmide, seansside, kasutajate,
+broneeringute ja maksete tegelik kasutajaliides ning autentimine tuleb veel
+ehitada. Vana Vite'i näidisvaade `HelloWorld.vue` ei ole rakenduse aktiivne
+vaade.
 
 ## Andmemudel
 
@@ -142,8 +162,9 @@ Backendi testid:
 docker compose exec backend python manage.py test
 ```
 
-Testid kontrollivad praegu tervisekontrolli otspunkti. Frontendi tootmisjärgu
-koostamiseks:
+Testid kontrollivad tervisekontrolli ja kataloogi otspunkte, sealhulgas loendi-
+ja detailpäringuid ning kirjutamispäringute tagasilükkamist. Frontendi
+tootmisjärgu koostamiseks:
 
 ```powershell
 docker compose exec frontend npm run build
@@ -153,8 +174,9 @@ docker compose exec frontend npm run build
 
 Soovituslik järgmine tööjärjekord:
 
-1. lisada kasutajate autentimine ning sisendandmete valideerimine;
-2. rakendada broneerimise, istekohtade lukustamise ja maksete töövood;
-3. lisada arvustuste API;
-4. siduda Vue kasutajaliides backendiga ning lisada kasutusjuhud;
-5. lisada iga uue kasutusjuhu juurde automaattestid.
+1. siduda olemasolevad Vue vaated kataloogi API-ga;
+2. ehitada filmide, kinode ja seansside tegelikud kataloogivaated;
+3. lisada kasutajate autentimine ning sisendandmete valideerimine;
+4. rakendada broneerimise, istekohtade lukustamise ja maksete töövood;
+5. lisada arvustuste API ja kasutajaliides;
+6. lisada iga uue kasutusjuhu juurde automaattestid.

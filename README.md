@@ -14,10 +14,12 @@ Praeguseks on olemas:
 - tervisekontrolli otspunkt `GET /api/cinema/`;
 - filmide, kinode, saalide ja seansside ainult lugemiseks mõeldud API-otspunktid;
 - `seed_demo` käsk seotud näidisandmete loomiseks;
-- esialgne Vue/Vite'i kasutajaliides.
+- Vue/Vite'i kasutajaliidese navigatsioon ja marsruudid avalehe, kinokava,
+  filmide, kinode, kasutaja, žanrite ja broneerimise jaoks.
 
-Kasutajaliideses ei ole veel kinokataloogi. Backendis puuduvad veel
-autentimine, broneerimise ja maksete töövood ning nende kirjutamis-otspunktid.
+Kasutajaliidese marsruudid sisaldavad praegu peamiselt vaadete alustekste ega
+ole veel backendiga seotud. Backendis puuduvad veel autentimine, broneerimise
+ja maksete töövood ning nende kirjutamis-otspunktid.
 
 ## Tehnoloogiad
 
@@ -111,6 +113,19 @@ Frontendist tootmisversiooni koostamine:
 ```powershell
 docker compose exec frontend npm run build
 ```
+
+Frontend kasutab Vue Routerit järgmiste marsruutidega:
+
+| Marsruut | Vaade |
+| --- | --- |
+| `/` | avaleht |
+| `/KinoKava` | kinokava |
+| `/filmid` | filmid |
+| `/kinod` | kinod |
+| `/kasutaja` | kasutaja |
+| `/users/<id>` | kasutaja ID järgi |
+| `/zanrid` | žanrid |
+| `/broneerimine` | broneerimine |
 
 Täiendav tehniline kirjeldus, andmemudel ja arendusplaan on failis
 [`documentation.md`](documentation.md).
