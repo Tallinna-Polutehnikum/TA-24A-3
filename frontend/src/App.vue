@@ -1,14 +1,17 @@
 <template>
-  <nav>
-    <RouterLink to="/">Home</RouterLink>
-    <RouterLink to="/KinoKava">KinoKava</RouterLink>
-    <RouterLink to="/filmid">Filmid</RouterLink>
-    <RouterLink to="/kinod">Kinod</RouterLink>
-    <RouterLink to="/kasutaja">Kasutaja</RouterLink>
-    <RouterLink to="/zanrid">Žanrid</RouterLink>
-    <RouterLink to="/broneerimine">Broneerimine</RouterLink>
-  </nav>
+  <Navbar />
   <main>
     <RouterView />
   </main>
 </template>
+
+<script setup>
+import Navbar from './components/Navbar.vue'
+</script>
+
+<style scoped>
+main {
+  min-height: calc(100vh - 72px);
+  text-align: center;
+}
+</style>
