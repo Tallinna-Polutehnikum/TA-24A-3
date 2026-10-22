@@ -12,12 +12,12 @@ Praeguseks on olemas:
 - Django `cinema` rakendus ning PostgreSQL-iga ühendatud mudelid;
 - Django migratsioonid andmebaasi skeemi loomiseks ja muutmiseks;
 - tervisekontrolli otspunkt `GET /api/cinema/`;
+- filmide, kinode, saalide ja seansside ainult lugemiseks mõeldud API-otspunktid;
 - `seed_demo` käsk seotud näidisandmete loomiseks;
 - esialgne Vue/Vite'i kasutajaliides.
 
-Kasutajaliideses ei ole veel kinokataloogi, autentimist, broneerimist ega
-maksete töövoogu. Backendis on praegu lisaks mudelitele realiseeritud ainult
-tervisekontrolli otspunkt.
+Kasutajaliideses ei ole veel kinokataloogi. Backendis puuduvad veel
+autentimine, broneerimise ja maksete töövood ning nende kirjutamis-otspunktid.
 
 ## Tehnoloogiad
 
@@ -45,6 +45,10 @@ Teenused on seejärel kättesaadavad:
 - frontend: <http://localhost:5173>
 - backend: <http://localhost:8000>
 - tervisekontroll: <http://localhost:8000/api/cinema/>
+- filmid: <http://localhost:8000/api/cinema/movies/>
+- kinod: <http://localhost:8000/api/cinema/cinemas/>
+- saalid: <http://localhost:8000/api/cinema/halls/>
+- seansid: <http://localhost:8000/api/cinema/screenings/>
 - PostgreSQL: `localhost:5432`
 
 Tervisekontrolli õnnestunud vastus on:
@@ -52,6 +56,11 @@ Tervisekontrolli õnnestunud vastus on:
 ```json
 {"app": "cinema", "status": "ok"}
 ```
+
+Kataloogi loendi vastus sisaldab `results` massiivi. Üksiku kirje saab kätte
+ID järgi, näiteks `GET /api/cinema/movies/1/`. Need otspunktid toetavad ainult
+GET- ja HEAD-päringuid; andmete muutmiseks mõeldud otspunktid pole veel
+rakendatud.
 
 Demoandmete loomiseks käivita:
 
