@@ -58,9 +58,25 @@ loomise ega kirjutamis-otspunktide rakendust projekt praegu ei sisalda.
 
 ### Frontend
 
-Frontend on Vue 3 ja Vite'i algne rakendus. Käivituv vaade kasutab komponenti
-`frontend/src/components/HelloWorld.vue`; kinode, filmide, seansside,
-broneeringute ja maksete kasutajaliides tuleb veel ehitada.
+Frontend on Vue 3 ja Vite'i rakendus. Käivituv vaade on avaleht ning
+navigatsioon on määratud komponendis
+[`frontend/src/components/Navbar.vue`](frontend/src/components/Navbar.vue).
+Kasutusel on järgmised marsruudid:
+
+| Marsruut | Vaade | Hetkeseis |
+| --- | --- | --- |
+| `/` | avaleht | kuvab tulevaste seanssidega filme API andmete põhjal |
+| `/KinoKava` | kinokava | vaate alus on olemas |
+| `/filmid` | filmid | kuvab filme ning filtreerib žanri ja seansi tüübi järgi |
+| `/kinod` | kinod | vaate alus on olemas |
+| `/kasutaja` | kasutaja | vaate alus on olemas |
+| `/zanrid` | žanrid | vaate alus on olemas |
+| `/broneerimine` | broneerimine | vaate alus on olemas |
+
+Filmi- ja avaleht kasutavad keskkonnamuutujat `VITE_API_URL`. Kui muutuja on
+määramata, kasutatakse arenduses aadressi `http://localhost:8000`. Need vaated
+laevad filmid ja seansid otspunktidest `/api/cinema/movies/` ning
+`/api/cinema/screenings/`.
 
 ## Andmemudel
 
@@ -148,6 +164,30 @@ koostamiseks:
 ```powershell
 docker compose exec frontend npm run build
 ```
+
+Frontend'i arendusserveri saab käivitada ka ilma Dockerita:
+
+```powershell
+cd frontend
+npm install
+npm run dev
+```
+
+## Keskkonnamuutujad
+
+Docker Compose loeb juurkausta `.env` failist järgmisi väärtusi:
+
+| Muutuja | Vaikeväärtus | Kasutus |
+| --- | --- | --- |
+| `POSTGRES_DB` | `appdb` | PostgreSQL-i andmebaasi nimi |
+| `POSTGRES_USER` | `Admin` | PostgreSQL-i kasutaja |
+| `POSTGRES_PASSWORD` | `pro123` | PostgreSQL-i parool arenduskeskkonnas |
+| `DJANGO_SECRET_KEY` | `dev-secret-key` | Django arenduskeskkonna salavõti |
+
+Frontendi `VITE_API_URL` määrab backendi HTTP-aadressi. Arenduse vaikeväärtus
+on `http://localhost:8000`; Docker Compose määrab sama väärtuse konteineris.
+Tootmises tuleb kõik vaikeväärtused ja arenduse salavõti asendada sobivate
+keskkonnapõhiste väärtustega.
 
 ## Arendusjärjekord
 
