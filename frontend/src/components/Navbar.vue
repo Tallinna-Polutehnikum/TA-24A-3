@@ -39,14 +39,9 @@ const navigationItems = [
 
 <style scoped>
 :global(:root) {
-  --ink: #0A0908;
-  --wine: #49111C;
   --wine-deep: #2e0a12;
-  --paper: #EFE8E8;
   --paper-dim: rgba(239, 232, 232, 0.66);
   --paper-faint: rgba(239, 232, 232, 0.12);
-  --serif: "Playfair Display", Georgia, "Times New Roman", serif;
-  --sans: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
 
 .site-header {
