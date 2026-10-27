@@ -15,6 +15,7 @@ from cinema.models import (
     CinemaHall,
     Genre,
     Movie,
+    MovieGenre,
     Payment,
     Review,
     Screening,
@@ -113,6 +114,17 @@ class Command(BaseCommand):
             )
             for _ in range(20)
         ]
+        MovieGenre.objects.bulk_create(
+            [
+                MovieGenre(movie=movie, genre=genre)
+                for movie in movies
+                for genre in fake.random_elements(
+                    elements=genres,
+                    length=random.randint(1, 3),
+                    unique=True,
+                )
+            ]
+        )
 
         now = timezone.now()
         screenings = []

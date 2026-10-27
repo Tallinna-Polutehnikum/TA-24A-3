@@ -60,6 +60,7 @@ def _screening_data(screening):
         'movie_title': screening.movie.title,
         'hall_id': screening.hall_id,
         'hall_name': screening.hall.name,
+        'screen_type': screening.hall.screen_type,
         'cinema_id': screening.hall.cinema_id,
         'cinema_name': screening.hall.cinema.name,
         'start_time': screening.start_time,
