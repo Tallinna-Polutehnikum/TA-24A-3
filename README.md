@@ -14,10 +14,15 @@ Praeguseks on olemas:
 - tervisekontrolli otspunkt `GET /api/cinema/`;
 - filmide, kinode, saalide ja seansside ainult lugemiseks mõeldud API-otspunktid;
 - `seed_demo` käsk seotud näidisandmete loomiseks;
-- esialgne Vue/Vite'i kasutajaliides.
+- Vue kasutajaliides avalehe, filmide, kinode, žanrite, kasutaja, broneerimise
+  ja kinokava vaadetega;
+- avalehel tulevaste seanssidega filmide loend ning filmide vaates žanri ja
+  seansi tüübi filtrid.
 
-Kasutajaliideses ei ole veel kinokataloogi. Backendis puuduvad veel
-autentimine, broneerimise ja maksete töövood ning nende kirjutamis-otspunktid.
+Backendis puuduvad veel autentimine, broneerimise ja maksete töövood ning nende
+kirjutamis-otspunktid. Kinode, žanrite, kasutaja, broneerimise ja kinokava
+vaated on praegu osaliselt realiseeritud ning nende täielik funktsionaalsus
+on järgmine arendusetapp.
 
 ## Tehnoloogiad
 
@@ -50,6 +55,11 @@ Teenused on seejärel kättesaadavad:
 - saalid: <http://localhost:8000/api/cinema/halls/>
 - seansid: <http://localhost:8000/api/cinema/screenings/>
 - PostgreSQL: `localhost:5432`
+
+Frontend kasutab vaikimisi backend'i aadressi `http://localhost:8000`.
+Teise aadressi kasutamiseks määra enne frontendi käivitamist
+`VITE_API_URL`. Docker Compose'i seadistus määrab selle väärtuseks
+`http://localhost:8000`.
 
 Tervisekontrolli õnnestunud vastus on:
 
@@ -111,6 +121,17 @@ Frontendist tootmisversiooni koostamine:
 ```powershell
 docker compose exec frontend npm run build
 ```
+
+Frontend'i saab väljaspool Dockerit käivitada ka otse `frontend` kaustast:
+
+```powershell
+npm install
+npm run dev
+```
+
+Rakenduse peamised frontend'i marsruudid on `/`, `/KinoKava`, `/filmid`,
+`/kinod`, `/kasutaja`, `/zanrid` ja `/broneerimine`. Arenduse ajal laetakse
+filmide ja seansside andmed backendi API-st.
 
 Täiendav tehniline kirjeldus, andmemudel ja arendusplaan on failis
 [`documentation.md`](documentation.md).
