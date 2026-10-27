@@ -5,6 +5,7 @@ const selectedDate = ref('fresh')
 const selectedGenre = ref('all')
 const selectedSessionType = ref('all')
 const movies = ref([])
+const screenings = ref([])
 const loading = ref(true)
 const error = ref('')
 
@@ -22,26 +23,37 @@ const genres = [
 ]
 
 const filteredMovies = computed(() => {
-    if (selectedGenre.value === 'all') {
-        return movies.value
-    }
+    return movies.value.filter(movie => {
+        const matchesGenre = selectedGenre.value === 'all'
+            || movie.genres?.some(genre => genre.name === selectedGenre.value)
+        const matchesSessionType = selectedSessionType.value === 'all'
+            || screenings.value.some(screening =>
+                screening.movie_id === movie.id
+                && screening.screen_type === selectedSessionType.value
+            )
 
-    return movies.value.filter(movie =>
-        movie.genres?.some(genre => genre.name === selectedGenre.value)
-    )
+        return matchesGenre && matchesSessionType
+    })
 })
 
 onMounted(async () => {
     try {
         const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000'
-        const response = await fetch(`${apiUrl}/api/cinema/movies/`)
+        const [moviesResponse, screeningsResponse] = await Promise.all([
+            fetch(`${apiUrl}/api/cinema/movies/`),
+            fetch(`${apiUrl}/api/cinema/screenings/`),
+        ])
 
-        if (!response.ok) {
+        if (!moviesResponse.ok || !screeningsResponse.ok) {
             throw new Error('Filmide päring ebaõnnestus')
         }
 
-        const data = await response.json()
-        movies.value = data.results
+        const [moviesData, screeningsData] = await Promise.all([
+            moviesResponse.json(),
+            screeningsResponse.json(),
+        ])
+        movies.value = moviesData.results
+        screenings.value = screeningsData.results
     } catch (err) {
         error.value = err.message
     } finally {
@@ -109,8 +121,9 @@ onMounted(async () => {
                     <span class="select-wrap">
                         <select v-model="selectedSessionType" aria-label="Vali seansi tüüp">
                             <option value="all">Kõik</option>
-                            <option value="2d">2D</option>
-                            <option value="3d">3D</option>
+                            <option value="2D">2D</option>
+                            <option value="3D">3D</option>
+                            <option value="IMAX">IMAX</option>
                         </select>
                     </span>
                 </span>

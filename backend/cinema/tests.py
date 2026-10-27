@@ -73,6 +73,14 @@ class CatalogueEndpointTests(TestCase):
             screening_response.json()['results'][0]['base_price'],
             '12.50',
         )
+        self.assertEqual(
+            screening_response.json()['results'][0]['screen_type'],
+            '2D',
+        )
+        self.assertEqual(
+            screening_response.json()['results'][0]['screen_type'],
+            '2D',
+        )
 
     def test_detail_endpoints_return_the_requested_resources(self):
         responses = (
