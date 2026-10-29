@@ -135,6 +135,8 @@ filmide ja seansside andmed backendi API-st.
 
 Täiendav tehniline kirjeldus, andmemudel ja arendusplaan on failis
 [`documentation.md`](documentation.md).
+Projekti peamised funktsionaalsed ja mittefunktsionaalsed nõuded ning esialgne
+arhitektuurijoonis on failis [`SRS.md`](SRS.md).
 
 ## Git workflow 
 
