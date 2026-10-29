@@ -11,8 +11,10 @@ const weekStart = ref(new Date(today))
 const selectedDate = ref(new Date(today))
 const selectedCinema = ref('all')
 const cinemas = ref([])
+const screenings = ref([])
 const cinemasLoading = ref(true)
 const cinemaError = ref('')
+const scheduleError = ref('')
 
 const days = computed(() =>
   Array.from({ length: 7 }, (_, index) => {
@@ -26,7 +28,7 @@ const isFirstWeek = computed(() => weekStart.value.getTime() <= today.getTime())
 const isLastWeek = computed(() => weekStart.value.getTime() >= lastWeekStart.getTime())
 
 function dateKey(date) {
-  return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`
+  return `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`
 }
 
 function formatWeekday(date) {
@@ -52,19 +54,53 @@ function shiftWeek(amount) {
   selectedDate.value = nextSelectedDate
 }
 
+const selectedMovies = computed(() => {
+  const movies = new Map()
+
+  screenings.value
+    .filter(screening => {
+      const screeningDate = new Date(screening.start_time)
+      const matchesDate = dateKey(screeningDate) === dateKey(selectedDate.value)
+      const matchesCinema = selectedCinema.value === 'all'
+        || String(screening.cinema_id) === selectedCinema.value
+
+      return matchesDate && matchesCinema
+    })
+    .forEach(screening => {
+      if (!movies.has(screening.movie_id)) {
+        movies.set(screening.movie_id, {
+          id: screening.movie_id,
+          title: screening.movie_title,
+          screenings: [],
+        })
+      }
+
+      movies.get(screening.movie_id).screenings.push(screening)
+    })
+
+  return Array.from(movies.values())
+})
+
 onMounted(async () => {
   try {
     const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000'
-    const response = await fetch(`${apiUrl}/api/cinema/cinemas/`)
+    const [cinemasResponse, screeningsResponse] = await Promise.all([
+      fetch(`${apiUrl}/api/cinema/cinemas/`),
+      fetch(`${apiUrl}/api/cinema/screenings/`),
+    ])
 
-    if (!response.ok) {
-      throw new Error('Kinode päring ebaõnnestus')
+    if (!cinemasResponse.ok || !screeningsResponse.ok) {
+      throw new Error('Kinode või seansside päring ebaõnnestus')
     }
 
-    const data = await response.json()
-    cinemas.value = data.results
+    const [cinemasData, screeningsData] = await Promise.all([
+      cinemasResponse.json(),
+      screeningsResponse.json(),
+    ])
+    cinemas.value = cinemasData.results
+    screenings.value = screeningsData.results
   } catch (error) {
-    cinemaError.value = error.message
+    scheduleError.value = error.message
   } finally {
     cinemasLoading.value = false
   }
@@ -143,6 +179,29 @@ onMounted(async () => {
     <p v-else-if="cinemaError" class="cinema-status cinema-error" role="alert">
       Kinode laadimine ebaõnnestus: {{ cinemaError }}
     </p>
+
+    <p v-if="scheduleError" class="schedule-status schedule-error" role="alert">
+      Filmikava laadimine ebaõnnestus: {{ scheduleError }}
+    </p>
+    <p v-else-if="!cinemasLoading && selectedMovies.length === 0" class="schedule-status">
+      Valitud kuupäeval filme ei leitud.
+    </p>
+    <ul v-else-if="!cinemasLoading" class="schedule-movies">
+      <li v-for="movie in selectedMovies" :key="movie.id" class="schedule-movie">
+        <h2>{{ movie.title }}</h2>
+        <ul class="screening-times">
+          <li v-for="screening in movie.screenings" :key="screening.id">
+            <time :datetime="screening.start_time">
+              {{ new Intl.DateTimeFormat('et-EE', {
+                hour: '2-digit',
+                minute: '2-digit',
+              }).format(new Date(screening.start_time)) }}
+            </time>
+            <span>{{ screening.cinema_name }} · {{ screening.hall_name }}</span>
+          </li>
+        </ul>
+      </li>
+    </ul>
   </section>
 </template>
 
@@ -336,6 +395,63 @@ onMounted(async () => {
 
 .cinema-error {
   color: var(--paper);
+}
+
+.schedule-status {
+  margin: 1.5rem 0 0;
+  color: var(--paper-muted);
+  text-align: center;
+}
+
+.schedule-error {
+  color: var(--paper);
+}
+
+.schedule-movies {
+  display: grid;
+  gap: 1rem;
+  margin: 1.5rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.schedule-movie {
+  padding: 1.25rem;
+  border: 1px solid var(--paper-subtle);
+  border-radius: 0.85rem;
+  background: rgba(239, 232, 232, 0.04);
+}
+
+.schedule-movie h2 {
+  font-size: 1.5rem;
+  color: var(--paper);
+}
+
+.screening-times {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  margin: 1rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.screening-times li {
+  display: grid;
+  gap: 0.1rem;
+  min-width: 10rem;
+  padding: 0.7rem 0.85rem;
+  border: 1px solid var(--paper-subtle);
+  border-radius: 0.5rem;
+}
+
+.screening-times time {
+  font-weight: 700;
+}
+
+.screening-times span {
+  color: var(--paper-muted);
+  font-size: 0.85rem;
 }
 
 .cinema-picker:focus-within,
