@@ -110,6 +110,9 @@ class Screening(models.Model):
 
 	class Meta:
 		db_table = 'seansid'
+		indexes = [
+			models.Index(fields=('start_time', 'id'), name='screening_start_id_idx'),
+		]
 		constraints = [
 			models.CheckConstraint(condition=models.Q(end_time__gt=models.F('start_time')), name='screening_end_after_start'),
 		]

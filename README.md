@@ -72,6 +72,53 @@ ID järgi, näiteks `GET /api/cinema/movies/1/`. Need otspunktid toetavad ainult
 GET- ja HEAD-päringuid; andmete muutmiseks mõeldud otspunktid pole veel
 rakendatud.
 
+## Indeksid
+
+Seansside loend sorteeritakse ORM-päringus `start_time` ja seejärel `id` järgi.
+Mudeli `Screening` liitindeks `(start_time, id)` toetab sama järjestust ning
+tagab võrdsete algusaegade korral stabiilse järjestuse. Primaarvõtmete indeksid
+loob Django automaatselt ID-põhiste detailpäringute jaoks ning välisvõtmete
+indeksid seoste päringute ja JOIN-ide jaoks.
+
+Unikaalsuspiirangud loovad samuti andmebaasiindeksid: istekohtade
+`(hall, row, number)` indeks takistab saalis sama koha dubleerimist ja toetab
+saali kohtade leidmist; filmi-žanri `(movie, genre)` indeks väldib sama seose
+kordumist ning toetab filmi žanrite leidmist; broneeritud kohtade
+`(screening, seat)` indeks tagab, et sama kohta ei broneerita samale seansile
+kaks korda, ning toetab seansi kohtade kontrolli. Välisvõtmete üksikindeksid
+toetavad ka nende seoste eraldi filtreerimist.
+
+Filmide žanri- ja seansitüübi filtrid töötavad praegu frontend'is pärast kogu
+kataloogi laadimist, mitte andmebaasipäringus; seetõttu ei lisata nendele
+väljadele kasutamata indekseid. Kui filtreerimine viiakse backend'i, tuleb
+indeksid valida tegelike ORM-päringute ning mõõdetud päringuplaanide alusel.
+
+## Vahemälu plaan
+
+Vahemälu pole praegu rakendatud. Kui kataloogi API-le lisatakse serveripoolne
+vahemälu, salvestatakse serialiseeritud GET-vastused Django vahemälukihtis
+järgmiste maksimaalsete kestustega:
+
+| Andmed | Kestus | Põhjendus |
+| --- | --- | --- |
+| Filmide loend ja filmi detail | 5 minutit | Kataloogiandmed muutuvad harva |
+| Kinode ja saalide loendid ning detailid | 5 minutit | Kataloogiandmed muutuvad harva |
+| Seansside loend ja detail | 30 sekundit | Seansside ajakohasus ja algusaegade lähenemine |
+| Tervisekontroll | Ei vahemälustata | Vastus peab peegeldama teenuse hetkeolekut |
+
+Vahemäluklahvid peavad sisaldama otspunkti, detaili ID-d ja kõiki päringu
+parameetreid, mis vastust mõjutavad. Kirje loomisel, muutmisel või kustutamisel
+tühistatakse pärast andmebaasitehingu edukat commit'i vastava kataloogiosa
+loendi- ja detailikirjed. Filmi muutmine tühistab ka seansside loendi vahemälu,
+kui seansi vastuses näidatakse filmi andmeid; kino või saali muutmine tühistab
+saalide ja seansside loendid. Seansi lisamine, muutmine või kustutamine
+tühistab seansside loendi ning muudetud seansi detaili. Filmi-žanri seose
+muutmine tühistab vastava filmi detaili ja filmide loendi. Tühistamine toimub
+alles pärast commit'i, et vahemälu ei saaks salvestamata andmeid. Broneeringute,
+maksete ega istekohtade saadavuse vastuseid ei panda vahemällu, kuni nende
+muutuvad töövood on rakendatud. Kestus on varupiirang, mitte tühistamise
+asendus.
+
 Demoandmete loomiseks käivita:
 
 ```powershell
