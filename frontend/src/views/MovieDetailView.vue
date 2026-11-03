@@ -1,13 +1,30 @@
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 
 const route = useRoute()
+const router = useRouter()
 const movie = ref(null)
 const screenings = ref([])
 const activeTab = ref('cast')
 const loading = ref(true)
 const error = ref('')
+
+function goBack() {
+  if (window.history.length > 1) {
+    router.back()
+    return
+  }
+
+  router.push({ name: 'home' })
+}
+
+function goToSeatSelection() {
+  router.push({
+    name: 'Booking',
+    query: { movie: String(movie.value.id) },
+  })
+}
 
 const year = computed(() => {
   if (!movie.value?.release_date) return '2024'
@@ -25,6 +42,27 @@ const ratingStats = computed(() => [
   { value: '78', label: 'Metacritic' },
   { value: '61', label: 'Tomatometer' },
 ])
+
+const reviews = [
+  {
+    author: 'Katrin L.',
+    rating: 5,
+    date: '12. oktoober 2024',
+    text: 'Visuaalselt väga ilus film ja muusika jäi veel pikaks ajaks kummitama. Mõnusalt aeglane tempo lubab loole sisse elada.',
+  },
+  {
+    author: 'Marko P.',
+    rating: 4,
+    date: '3. oktoober 2024',
+    text: 'Tugevad näitlejatööd ja hea atmosfäär. Teine vaatus venis natuke, aga lõpp tasus ootamise ära.',
+  },
+  {
+    author: 'Liis T.',
+    rating: 4,
+    date: '28. september 2024',
+    text: 'Hea valik neile, kellele meeldivad vaiksed ja mõtestatud lood. Kinosaalis oli eriti mõjus.',
+  },
+]
 
 const cast = computed(() => {
   const fallbackNames = [
@@ -96,6 +134,11 @@ watch(
 </script>
 
 <template>
+  <button type="button" class="back-button" aria-label="Mine tagasi" @click="goBack">
+    <span aria-hidden="true">←</span>
+    Tagasi
+  </button>
+
   <section v-if="loading" class="detail-shell detail-shell--status">
     <p>Laen filmiandmeid...</p>
   </section>
@@ -148,6 +191,9 @@ watch(
         <button
           type="button"
           class="tab-button"
+          role="tab"
+          :aria-selected="activeTab === 'cast'"
+          aria-controls="cast-panel"
           :class="{ 'is-active': activeTab === 'cast' }"
           @click="activeTab = 'cast'"
         >
@@ -156,15 +202,33 @@ watch(
         <button
           type="button"
           class="tab-button"
+          role="tab"
+          :aria-selected="activeTab === 'screenings'"
+          aria-controls="screenings-panel"
           :class="{ 'is-active': activeTab === 'screenings' }"
           @click="activeTab = 'screenings'"
         >
           Seansiajad
         </button>
-        <button type="button" class="tab-button">Hinnangud</button>
+        <button
+          type="button"
+          class="tab-button"
+          role="tab"
+          :aria-selected="activeTab === 'reviews'"
+          aria-controls="reviews-panel"
+          :class="{ 'is-active': activeTab === 'reviews' }"
+          @click="activeTab = 'reviews'"
+        >
+          Hinnangud
+        </button>
       </div>
 
-      <div v-if="activeTab === 'cast'" class="cast-grid">
+      <div
+        v-if="activeTab === 'cast'"
+        id="cast-panel"
+        class="cast-grid"
+        role="tabpanel"
+      >
         <div v-for="person in cast" :key="person.name" class="cast-card">
           <div class="cast-avatar" :aria-label="person.name">
             {{ person.initials }}
@@ -173,7 +237,12 @@ watch(
         </div>
       </div>
 
-      <div v-else-if="activeTab === 'screenings'" class="screening-box">
+      <div
+        v-else-if="activeTab === 'screenings'"
+        id="screenings-panel"
+        class="screening-box"
+        role="tabpanel"
+      >
         <h2>Kinokavad</h2>
         <p v-if="!screenings.length" class="screening-empty">
           Sellele filmile ei ole hetkel seansse saadaval.
@@ -192,43 +261,107 @@ watch(
           </li>
         </ul>
       </div>
+
+      <div
+        v-else-if="activeTab === 'reviews'"
+        id="reviews-panel"
+        class="reviews-box"
+        role="tabpanel"
+      >
+        <h2>Vaatajate arvamused</h2>
+        <ul class="review-list">
+          <li v-for="review in reviews" :key="review.author" class="review-item">
+            <div class="review-heading">
+              <strong>{{ review.author }}</strong>
+              <span class="review-rating" :aria-label="`${review.rating} tärni viiest`">
+                {{ '★'.repeat(review.rating) }}{{ '☆'.repeat(5 - review.rating) }}
+              </span>
+            </div>
+            <p>{{ review.text }}</p>
+            <time>{{ review.date }}</time>
+          </li>
+        </ul>
+      </div>
+
+      <button type="button" class="seat-selection-button" @click="goToSeatSelection">
+        Vali istekohad
+      </button>
     </div>
   </article>
 </template>
 
 <style scoped>
 :global(:root) {
-  --screen-bg: rgba(10, 9, 8, 0.94);
-  --screen-panel: rgba(239, 232, 232, 0.96);
-  --screen-panel-muted: rgba(239, 232, 232, 0.72);
-  --screen-border: rgba(73, 17, 28, 0.14);
-  --screen-text: var(--ink);
-  --screen-subtle: rgba(10, 9, 8, 0.64);
-  --screen-heading: var(--wine);
-  --screen-accent: var(--wine);
+  --screen-bg: #100d0e;
+  --screen-panel: #1b1517;
+  --screen-panel-muted: #b7a9a9;
+  --screen-border: rgba(245, 238, 238, 0.1);
+  --screen-text: var(--cinema-paper);
+  --screen-subtle: var(--cinema-muted);
+  --screen-heading: var(--cinema-highlight);
+  --screen-accent: var(--cinema-highlight);
+}
+
+.back-button {
+  position: fixed;
+  top: 5.5rem;
+  left: 1.25rem;
+  z-index: 10;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.55rem 0.8rem;
+  border: 1px solid rgba(245, 238, 238, 0.2);
+  border-radius: 999px;
+  background: rgba(27, 21, 23, 0.92);
+  color: var(--cinema-paper);
+  cursor: pointer;
+  font-size: 0.78rem;
+  font-weight: 700;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.22);
+  backdrop-filter: blur(8px);
+}
+
+.back-button:hover,
+.back-button:focus-visible {
+  border-color: rgba(217, 119, 136, 0.7);
+  color: #d97788;
+}
+
+.back-button span {
+  font-size: 1.1rem;
+  line-height: 1;
 }
 
 .movie-detail {
-  width: min(100%, 62rem);
-  margin: 2rem auto 4rem;
-  padding: 0.5rem 0 0;
-  background: var(--screen-panel);
-  border: 1px solid var(--screen-border);
-  border-radius: 1rem;
-  box-shadow: 0 24px 48px rgba(10, 9, 8, 0.12);
+  width: 100%;
+  min-height: calc(100vh - 72px);
+  margin: 0;
+  padding: clamp(2.5rem, 7vw, 6rem) max(1.25rem, 2vw);
+  color: var(--screen-text);
+  background:
+    radial-gradient(ellipse at 82% 0%, rgba(142, 38, 57, 0.2), transparent 34rem),
+    var(--screen-bg);
 }
 
 .detail-hero {
   display: grid;
   grid-template-columns: minmax(220px, 31%) minmax(0, 1fr);
+  max-width: 980px;
   min-height: 26rem;
+  margin: 0 auto;
+  overflow: hidden;
+  border: 1px solid var(--screen-border);
+  border-radius: 0.85rem;
+  background: var(--screen-panel);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.3);
 }
 
 .detail-poster {
   position: relative;
   display: flex;
   min-height: 100%;
-  background: linear-gradient(180deg, #1f1b1c 0%, #0d0d0f 100%);
+  background: linear-gradient(145deg, #44232b, #191315 70%);
 }
 
 .detail-poster img,
@@ -243,9 +376,9 @@ watch(
   display: grid;
   place-items: center;
   font-size: clamp(4rem, 7vw, 7rem);
-  color: var(--paper);
+  color: var(--cinema-paper);
   font-family: var(--serif);
-  background: linear-gradient(160deg, var(--wine), var(--ink));
+  background: linear-gradient(145deg, #44232b, #191315 70%);
 }
 
 .poster-caption {
@@ -257,7 +390,7 @@ watch(
   align-items: end;
   justify-content: space-between;
   gap: 0.75rem;
-  color: var(--paper);
+  color: var(--cinema-paper);
   text-shadow: 0 2px 12px rgba(10, 9, 8, 0.7);
 }
 
@@ -280,12 +413,13 @@ watch(
   background-repeat: no-repeat;
   background-position: center;
   background-size: cover;
+  background-color: #191315;
 }
 
 .detail-visual::before {
   position: absolute;
   inset: 0;
-  background: rgba(10, 9, 8, 0.18);
+  background: linear-gradient(90deg, rgba(16, 13, 14, 0.82), rgba(16, 13, 14, 0.18));
   content: '';
 }
 
@@ -295,13 +429,13 @@ watch(
   bottom: 1.25rem;
   left: 1.5rem;
   z-index: 1;
-  color: var(--paper);
+  color: var(--cinema-paper);
 }
 
 .eyebrow {
   display: inline-block;
   margin-bottom: 0.9rem;
-  color: rgba(239, 232, 232, 0.82);
+  color: #d78a96;
   font-size: 0.7rem;
   font-weight: 700;
   letter-spacing: 0.2em;
@@ -309,14 +443,16 @@ watch(
 }
 
 .detail-visual__content h1 {
-  color: var(--paper);
+  color: var(--cinema-paper);
   font-size: clamp(2.2rem, 4.8vw, 4rem);
   line-height: 1.02;
   letter-spacing: -0.05em;
 }
 
 .detail-body {
-  padding: 1.5rem 1.4rem 1.9rem;
+  max-width: 980px;
+  margin: 1.5rem auto 0;
+  padding: 1.5rem 0 1.9rem;
   color: var(--screen-text);
 }
 
@@ -333,7 +469,7 @@ watch(
   gap: 1rem;
   margin-top: 1.5rem;
   padding-top: 1rem;
-  border-top: 1px solid rgba(10, 9, 8, 0.1);
+  border-top: 1px solid rgba(245, 238, 238, 0.14);
 }
 
 .stat-item {
@@ -401,9 +537,9 @@ watch(
   width: 4.8rem;
   height: 4.8rem;
   place-items: center;
-  border: 1px solid rgba(73, 17, 28, 0.18);
+  border: 1px solid rgba(245, 238, 238, 0.18);
   border-radius: 50%;
-  background: linear-gradient(135deg, rgba(73, 17, 28, 0.12), rgba(10, 9, 8, 0.08));
+  background: linear-gradient(135deg, rgba(142, 38, 57, 0.35), rgba(10, 9, 8, 0.24));
   color: var(--screen-heading);
   font-size: 1.1rem;
   font-weight: 700;
@@ -419,7 +555,7 @@ watch(
 .screening-box {
   margin-top: 2rem;
   padding-top: 1.4rem;
-  border-top: 1px solid rgba(10, 9, 8, 0.1);
+  border-top: 1px solid rgba(245, 238, 238, 0.14);
 }
 
 .screening-box h2 {
@@ -448,7 +584,7 @@ watch(
   padding: 0.8rem 1rem;
   border: 1px solid var(--screen-border);
   border-radius: 0.45rem;
-  background: rgba(73, 17, 28, 0.04);
+  background: rgba(245, 238, 238, 0.04);
 }
 
 .screening-item time {
@@ -471,19 +607,108 @@ watch(
   margin: 0;
 }
 
+.reviews-box {
+  margin-top: 2rem;
+  padding-top: 1.4rem;
+  border-top: 1px solid rgba(245, 238, 238, 0.14);
+}
+
+.reviews-box h2 {
+  margin: 0 0 0.8rem;
+  color: var(--screen-text);
+  font-size: 1.1rem;
+}
+
+.review-list {
+  display: grid;
+  gap: 0.7rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.review-item {
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--screen-border);
+  border-radius: 0.45rem;
+  background: rgba(245, 238, 238, 0.04);
+}
+
+.review-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.review-heading strong {
+  color: var(--screen-text);
+}
+
+.review-rating {
+  color: var(--screen-heading);
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+}
+
+.review-item p {
+  margin: 0.55rem 0;
+  color: var(--screen-subtle);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.review-item time {
+  color: var(--screen-subtle);
+  font-size: 0.75rem;
+}
+
+.seat-selection-button {
+  display: block;
+  margin: 2rem auto 0;
+  padding: 0.8rem 1.5rem;
+  border: 1px solid var(--screen-accent);
+  border-radius: 999px;
+  background: var(--screen-accent);
+  color: var(--screen-bg);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.seat-selection-button:hover,
+.seat-selection-button:focus-visible {
+  border-color: #e7a0ad;
+  background: #e7a0ad;
+}
+
 .detail-shell--status {
   display: grid;
-  min-height: 18rem;
   place-items: center;
   padding: 2rem 1.5rem;
-  color: var(--ink);
+  min-height: calc(100vh - 72px);
+  color: var(--cinema-paper);
+  background:
+    radial-gradient(ellipse at 82% 0%, rgba(142, 38, 57, 0.2), transparent 34rem),
+    var(--screen-bg);
 }
 
 .detail-shell--error p {
-  color: var(--wine);
+  color: #d97788;
 }
 
 @media (max-width: 720px) {
+  .back-button {
+    top: 5rem;
+    left: 0.75rem;
+  }
+
+  .movie-detail {
+    padding-right: 1rem;
+    padding-left: 1rem;
+  }
+
   .detail-hero {
     grid-template-columns: 1fr;
   }
@@ -506,6 +731,11 @@ watch(
 
   .movie-summary {
     font-size: 1rem;
+  }
+
+  .detail-body {
+    padding-right: 0;
+    padding-left: 0;
   }
 }
 </style>
