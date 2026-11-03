@@ -5,6 +5,7 @@ import { useRoute } from 'vue-router'
 const route = useRoute()
 const movie = ref(null)
 const screenings = ref([])
+const activeTab = ref('cast')
 const loading = ref(true)
 const error = ref('')
 
@@ -45,6 +46,16 @@ const cast = computed(() => {
 
   return names
 })
+
+function formatScreeningDate(startTime) {
+  return new Intl.DateTimeFormat('et-EE', {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'long',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(new Date(startTime))
+}
 
 async function fetchMovieData() {
   loading.value = true
@@ -134,12 +145,26 @@ watch(
       </div>
 
       <div class="detail-tabs" aria-label="Filmiteabe vahelehed">
-        <button type="button" class="tab-button is-active">Režissöör ja näitlejat</button>
-        <button type="button" class="tab-button">Seansiajad</button>
-        <button type="button" class="tab-button">Hinnagud</button>
+        <button
+          type="button"
+          class="tab-button"
+          :class="{ 'is-active': activeTab === 'cast' }"
+          @click="activeTab = 'cast'"
+        >
+          Režissöör ja näitlejad
+        </button>
+        <button
+          type="button"
+          class="tab-button"
+          :class="{ 'is-active': activeTab === 'screenings' }"
+          @click="activeTab = 'screenings'"
+        >
+          Seansiajad
+        </button>
+        <button type="button" class="tab-button">Hinnangud</button>
       </div>
 
-      <div class="cast-grid">
+      <div v-if="activeTab === 'cast'" class="cast-grid">
         <div v-for="person in cast" :key="person.name" class="cast-card">
           <div class="cast-avatar" :aria-label="person.name">
             {{ person.initials }}
@@ -148,16 +173,22 @@ watch(
         </div>
       </div>
 
-      <div v-if="screenings.length" class="screening-box">
-        <h2>Available screenings</h2>
-        <ul>
-          <li v-for="screening in screenings.slice(0, 5)" :key="screening.id">
-            {{ new Date(screening.start_time).toLocaleString('et-EE', {
-              day: 'numeric',
-              month: 'short',
-              hour: '2-digit',
-              minute: '2-digit'
-            }) }}
+      <div v-else-if="activeTab === 'screenings'" class="screening-box">
+        <h2>Kinokavad</h2>
+        <p v-if="!screenings.length" class="screening-empty">
+          Sellele filmile ei ole hetkel seansse saadaval.
+        </p>
+        <ul v-else class="screening-list">
+          <li v-for="screening in screenings" :key="screening.id" class="screening-item">
+            <time :datetime="screening.start_time">
+              {{ formatScreeningDate(screening.start_time) }}
+            </time>
+            <span>{{ screening.cinema_name }} · {{ screening.hall_name }}</span>
+            <small>
+              {{ screening.screen_type }}
+              <template v-if="screening.language"> · {{ screening.language }}</template>
+              <template v-if="screening.subtitles"> · subtiitrid: {{ screening.subtitles }}</template>
+            </small>
           </li>
         </ul>
       </div>
@@ -402,6 +433,42 @@ watch(
   padding-left: 1.2rem;
   color: var(--screen-subtle);
   line-height: 1.8;
+}
+
+.screening-list {
+  display: grid;
+  gap: 0.7rem;
+  padding-left: 0 !important;
+  list-style: none;
+}
+
+.screening-item {
+  display: grid;
+  gap: 0.2rem;
+  padding: 0.8rem 1rem;
+  border: 1px solid var(--screen-border);
+  border-radius: 0.45rem;
+  background: rgba(73, 17, 28, 0.04);
+}
+
+.screening-item time {
+  color: var(--screen-heading);
+  font-weight: 700;
+}
+
+.screening-item span {
+  color: var(--screen-text);
+  font-size: 0.9rem;
+}
+
+.screening-item small,
+.screening-empty {
+  color: var(--screen-subtle);
+  font-size: 0.78rem;
+}
+
+.screening-empty {
+  margin: 0;
 }
 
 .detail-shell--status {
