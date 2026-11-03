@@ -141,28 +141,30 @@ onMounted(async () => {
         </p>
         <ul v-else class="movie-grid">
             <li v-for="movie in filteredMovies" :key="movie.id" class="movie-card">
-                <div class="poster">
-                    <img
-                        v-if="movie.poster_url"
-                        :src="movie.poster_url"
-                        :alt="`${movie.title} filmi plakat`"
-                        loading="lazy"
-                    >
-                    <div v-else class="poster-placeholder" aria-hidden="true">
-                        <span>K</span>
-                        <small>KINOKAVA</small>
+                <RouterLink :to="{ name: 'MovieDetail', params: { id: movie.id } }" class="movie-link">
+                    <div class="poster">
+                        <img
+                            v-if="movie.poster_url"
+                            :src="movie.poster_url"
+                            :alt="`${movie.title} filmi plakat`"
+                            loading="lazy"
+                        >
+                        <div v-else class="poster-placeholder" aria-hidden="true">
+                            <span>K</span>
+                            <small>KINOKAVA</small>
+                        </div>
                     </div>
-                </div>
-                <div class="movie-info">
-                    <div class="movie-meta">
-                        <span v-if="movie.age_rating">{{ movie.age_rating }}</span>
-                        <span v-if="movie.duration">{{ movie.duration }} min</span>
+                    <div class="movie-info">
+                        <div class="movie-meta">
+                            <span v-if="movie.age_rating">{{ movie.age_rating }}</span>
+                            <span v-if="movie.duration">{{ movie.duration }} min</span>
+                        </div>
+                        <h2>{{ movie.title }}</h2>
+                        <p v-if="movie.genres?.length" class="movie-genres">
+                            {{ movie.genres.map(genre => genre.name).join(' · ') }}
+                        </p>
                     </div>
-                    <h2>{{ movie.title }}</h2>
-                    <p v-if="movie.genres?.length" class="movie-genres">
-                        {{ movie.genres.map(genre => genre.name).join(' · ') }}
-                    </p>
-                </div>
+                </RouterLink>
             </li>
         </ul>
     </div>
@@ -365,6 +367,12 @@ option {
     transform: translateY(-5px);
     border-color: rgba(217, 119, 136, 0.55);
     box-shadow: 0 18px 40px rgba(0, 0, 0, 0.3);
+}
+
+.movie-link {
+    display: block;
+    color: inherit;
+    text-decoration: none;
 }
 
 .poster {

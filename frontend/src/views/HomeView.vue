@@ -31,33 +31,35 @@
 
       <ul v-else class="movie-grid">
         <li v-for="movie in movies" :key="movie.id" class="movie-card">
-          <div class="poster">
-            <img
-              v-if="movie.poster_url"
-              :src="movie.poster_url"
-              :alt="`${movie.title} filmi plakat`"
-              loading="lazy"
-            >
-            <div v-else class="poster-placeholder" aria-hidden="true">
-              <span>K</span>
-              <small>KINOKAVA</small>
+          <RouterLink :to="{ name: 'MovieDetail', params: { id: movie.id } }" class="movie-link">
+            <div class="poster">
+              <img
+                v-if="movie.poster_url"
+                :src="movie.poster_url"
+                :alt="`${movie.title} filmi plakat`"
+                loading="lazy"
+              >
+              <div v-else class="poster-placeholder" aria-hidden="true">
+                <span>K</span>
+                <small>KINOKAVA</small>
+              </div>
+              <span class="now-showing">KINOS</span>
             </div>
-            <span class="now-showing">KINOS</span>
-          </div>
 
-          <div class="movie-info">
-            <div class="movie-meta">
-              <span v-if="movie.age_rating">{{ movie.age_rating }}</span>
-              <span v-if="movie.duration">{{ movie.duration }} min</span>
+            <div class="movie-info">
+              <div class="movie-meta">
+                <span v-if="movie.age_rating">{{ movie.age_rating }}</span>
+                <span v-if="movie.duration">{{ movie.duration }} min</span>
+              </div>
+              <h3>{{ movie.title }}</h3>
+              <p v-if="movie.genres?.length" class="movie-genres">
+                {{ movie.genres.map(genre => genre.name).join(' · ') }}
+              </p>
+              <p v-if="movie.description" class="movie-description">
+                {{ movie.description }}
+              </p>
             </div>
-            <h3>{{ movie.title }}</h3>
-            <p v-if="movie.genres?.length" class="movie-genres">
-              {{ movie.genres.map(genre => genre.name).join(' · ') }}
-            </p>
-            <p v-if="movie.description" class="movie-description">
-              {{ movie.description }}
-            </p>
-          </div>
+          </RouterLink>
         </li>
       </ul>
     </section>
@@ -222,6 +224,12 @@ onMounted(async () => {
   box-shadow: 0 18px 40px rgba(0, 0, 0, 0.3);
 }
 
+.movie-link {
+  display: block;
+  color: inherit;
+  text-decoration: none;
+}
+
 .poster {
   position: relative;
   overflow: hidden;
@@ -266,20 +274,21 @@ onMounted(async () => {
   margin-top: 0.7rem;
   font-size: 0.58rem;
   font-weight: 800;
-  letter-spacing: 0.2em;
+  letter-spacing: 0.16em;
 }
 
 .now-showing {
   position: absolute;
-  top: 0.8rem;
-  left: 0.8rem;
-  padding: 0.35rem 0.55rem;
-  border-radius: 0.25rem;
-  color: white;
-  background: var(--cinema-wine);
-  font-size: 0.62rem;
-  font-weight: 800;
-  letter-spacing: 0.12em;
+  right: 0.75rem;
+  bottom: 0.75rem;
+  padding: 0.28rem 0.55rem;
+  border: 1px solid rgba(245, 238, 238, 0.25);
+  border-radius: 999px;
+  background: rgba(16, 13, 14, 0.55);
+  color: var(--cinema-paper);
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
 }
 
 .movie-info {
@@ -289,59 +298,38 @@ onMounted(async () => {
 .movie-meta {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
-  color: #d8a1aa;
+  gap: 0.6rem 0.85rem;
+  color: #d78a96;
   font-size: 0.72rem;
   font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .movie-info h3 {
-  margin: 0.45rem 0 0;
+  margin: 0.7rem 0 0;
   color: var(--cinema-paper);
   font-family: Georgia, 'Times New Roman', serif;
-  font-size: 1.25rem;
+  font-size: 1.3rem;
   line-height: 1.25;
 }
 
-.movie-genres {
-  margin-top: 0.4rem;
+.movie-genres,
+.movie-description {
+  margin-top: 0.55rem;
   color: var(--cinema-muted);
-  font-size: 0.8rem;
+  font-size: 0.82rem;
+  line-height: 1.5;
 }
 
 .movie-description {
   display: -webkit-box;
-  overflow: hidden;
-  margin-top: 0.7rem;
-  color: #c4b8b8;
-  font-size: 0.82rem;
-  line-height: 1.55;
-  -webkit-box-orient: vertical;
   -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
-.notice {
-  padding: 1.25rem 1.5rem;
-  border: 1px solid rgba(245, 238, 238, 0.12);
-  border-radius: 0.65rem;
-  color: var(--cinema-muted);
-  background: var(--cinema-panel);
-}
-
-.notice-error {
-  border-color: rgba(217, 119, 136, 0.45);
-  color: #f1a4b0;
-}
-
-@media (max-width: 600px) {
-  .home-page {
-    padding-inline: 1rem;
-  }
-
-  .intro {
-    margin-bottom: 3rem;
-  }
-
+@media (max-width: 700px) {
   .movie-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 0.8rem;
@@ -350,25 +338,16 @@ onMounted(async () => {
   .movie-info {
     padding: 0.75rem;
   }
-
-  .movie-info h3 {
-    font-size: 1.05rem;
-  }
-
-  .movie-description {
-    font-size: 0.75rem;
-  }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .movie-card,
-  .poster img {
-    transition: none;
+@media (max-width: 480px) {
+  .section-heading {
+    flex-direction: column;
+    align-items: flex-start;
   }
 
-  .movie-card:hover,
-  .movie-card:hover .poster img {
-    transform: none;
+  .movie-grid {
+    grid-template-columns: 1fr;
   }
 }
 </style>
