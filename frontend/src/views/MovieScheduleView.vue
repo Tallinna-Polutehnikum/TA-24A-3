@@ -188,7 +188,11 @@ onMounted(async () => {
     </p>
     <ul v-else-if="!cinemasLoading" class="schedule-movies">
       <li v-for="movie in selectedMovies" :key="movie.id" class="schedule-movie">
-        <h2>{{ movie.title }}</h2>
+        <h2>
+          <RouterLink :to="{ name: 'MovieDetail', params: { id: movie.id } }">
+            {{ movie.title }}
+          </RouterLink>
+        </h2>
         <ul class="screening-times">
           <li v-for="screening in movie.screenings" :key="screening.id">
             <time :datetime="screening.start_time">

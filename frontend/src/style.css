@@ -6,6 +6,16 @@
   --paper-subtle: rgba(239, 232, 232, 0.12);
   --wine-soft: rgba(73, 17, 28, 0.12);
   --wine-border: rgba(73, 17, 28, 0.28);
+  --cinema-ink: #100d0e;
+  --cinema-panel: #1b1517;
+  --cinema-paper: #f5eeee;
+  --cinema-muted: #b7a9a9;
+  --cinema-highlight: #d97788;
+  --movie-panel: rgba(239, 232, 232, 0.96);
+  --movie-panel-muted: rgba(239, 232, 232, 0.72);
+  --movie-surface: rgba(10, 9, 8, 0.94);
+  --movie-subtle: rgba(10, 9, 8, 0.64);
+  --movie-border: rgba(73, 17, 28, 0.14);
   --sans: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --serif: "Playfair Display", Georgia, "Times New Roman", serif;
 
