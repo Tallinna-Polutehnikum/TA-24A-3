@@ -6,6 +6,11 @@ app_name = 'cinema'
 
 urlpatterns = [
     path('', views.health, name='health'),
+    path('auth/csrf/', views.csrf_token, name='auth-csrf'),
+    path('auth/register/', views.register, name='auth-register'),
+    path('auth/login/', views.user_login, name='auth-login'),
+    path('auth/logout/', views.user_logout, name='auth-logout'),
+    path('auth/me/', views.me, name='auth-me'),
     path('movies/', views.movies, name='movies'),
     path('movies/<int:movie_id>/', views.movie_detail, name='movie-detail'),
     path('cinemas/', views.cinemas, name='cinemas'),

@@ -1,16 +1,49 @@
+from django.contrib.auth.base_user import AbstractBaseUser, BaseUserManager
+from django.contrib.auth.models import PermissionsMixin
 from django.core.validators import MinValueValidator, MaxValueValidator
 from django.db import models
+from django.conf import settings
 
 
-class User(models.Model):
+class UserManager(BaseUserManager):
+	def create_user(self, username, email=None, password=None, **extra_fields):
+		if not username:
+			raise ValueError('The username must be set')
+
+		user = self.model(username=username, email=email or '', **extra_fields)
+		user.set_password(password)
+		user.save(using=self._db)
+		return user
+
+	def create_superuser(self, username, email=None, password=None, **extra_fields):
+		extra_fields.setdefault('is_staff', True)
+		extra_fields.setdefault('is_superuser', True)
+		extra_fields.setdefault('is_active', True)
+
+		if extra_fields.get('is_staff') is not True:
+			raise ValueError('Superuser must have is_staff=True.')
+		if extra_fields.get('is_superuser') is not True:
+			raise ValueError('Superuser must have is_superuser=True.')
+
+		return self.create_user(username, email, password, **extra_fields)
+
+
+class User(AbstractBaseUser, PermissionsMixin):
 	id = models.BigAutoField(primary_key=True)
-	username = models.CharField(max_length=255, db_column='user')
+	username = models.CharField(max_length=255, db_column='user', unique=True)
 	first_name = models.CharField(max_length=1024)
 	last_name = models.CharField(max_length=1024)
 	phone_number = models.CharField(max_length=30)
-	email = models.CharField(max_length=1024)
+	email = models.CharField(max_length=1024, unique=True)
 	date_of_birth = models.DateField(null=True, blank=True)
-	password_hash = models.TextField()
+	password = models.TextField(db_column='password_hash')
+	is_staff = models.BooleanField(default=False)
+	is_active = models.BooleanField(default=True)
+
+	objects = UserManager()
+
+	USERNAME_FIELD = 'username'
+	REQUIRED_FIELDS = ['email']
 
 	class Meta:
 		db_table = 'user'
@@ -120,7 +153,7 @@ class Screening(models.Model):
 
 class Booking(models.Model):
 	id = models.AutoField(primary_key=True)
-	user = models.ForeignKey(User, on_delete=models.CASCADE, db_column='kasutaja_id', related_name='bookings')
+	user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, db_column='kasutaja_id', related_name='bookings')
 	screening = models.ForeignKey(Screening, on_delete=models.CASCADE, db_column='seansi_id', related_name='bookings')
 	status = models.CharField(max_length=20, db_column='staatus', default='ootel')
 	total = models.DecimalField(max_digits=8, decimal_places=2, db_column='kogusumma')
@@ -159,7 +192,7 @@ class Payment(models.Model):
 
 class Review(models.Model):
 	id = models.AutoField(primary_key=True)
-	user = models.ForeignKey(User, on_delete=models.CASCADE, db_column='kasutaja_id', related_name='reviews')
+	user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, db_column='kasutaja_id', related_name='reviews')
 	movie = models.ForeignKey(Movie, on_delete=models.CASCADE, db_column='filmi_id', related_name='reviews')
 	rating = models.PositiveSmallIntegerField(
 		db_column='hinnang',

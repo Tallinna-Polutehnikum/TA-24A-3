@@ -49,6 +49,12 @@ const router = createRouter({
             component: UserView
         },
         {
+            path: '/profiil',
+            name: 'Profile',
+            component: UserView,
+            meta: { requiresAuth: true }
+        },
+        {
             path: '/zanrid',
             name: 'Genres',
             component: GenresView
@@ -59,6 +65,13 @@ const router = createRouter({
             component: BookingView
         }
     ]
+})
+
+router.beforeEach(async (to) => {
+    if (!to.meta.requiresAuth) return true
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+    const response = await fetch(`${apiUrl}/api/cinema/auth/me/`, { credentials: 'include' })
+    return response.ok ? true : { name: 'User' }
 })
 
 export default router

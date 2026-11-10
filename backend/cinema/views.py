@@ -1,8 +1,164 @@
+import json
+import re
+
+from django.contrib.auth import authenticate, get_user_model, login, logout
+from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError
+from django.core.validators import validate_email
 from django.http import JsonResponse
+from django.middleware.csrf import get_token
 from django.shortcuts import get_object_or_404
-from django.views.decorators.http import require_safe
+from django.utils.dateparse import parse_date
+from django.views.decorators.csrf import ensure_csrf_cookie
+from django.views.decorators.http import require_http_methods, require_safe
 
 from .models import Cinema, CinemaHall, Movie, Screening
+
+User = get_user_model()
+PHONE_PATTERN = re.compile(r'^\+?[0-9 ()-]{7,30}$')
+
+
+def _json_body(request):
+    try:
+        body = json.loads(request.body or '{}')
+    except json.JSONDecodeError:
+        return None, JsonResponse({'error': 'Vigane JSON-päring.'}, status=400)
+    if not isinstance(body, dict):
+        return None, JsonResponse({'error': 'Päringu keha peab olema objekt.'}, status=400)
+    return body, None
+
+
+def _user_data(user):
+    return {
+        'id': user.id,
+        'username': user.username,
+        'email': user.email,
+        'first_name': user.first_name,
+        'last_name': user.last_name,
+        'phone_number': user.phone_number,
+        'date_of_birth': user.date_of_birth,
+        'is_staff': user.is_staff,
+    }
+
+
+def _validation_errors(errors):
+    return JsonResponse({'errors': errors}, status=400)
+
+
+@ensure_csrf_cookie
+@require_safe
+def csrf_token(request):
+    return JsonResponse({'csrfToken': get_token(request)})
+
+
+@require_http_methods(['POST'])
+def register(request):
+    data, error = _json_body(request)
+    if error:
+        return error
+
+    required = ('username', 'email', 'password', 'phone_number')
+    errors = {
+        field: 'See väli on kohustuslik.'
+        for field in required
+        if not str(data.get(field, '')).strip()
+    }
+    if errors:
+        return _validation_errors(errors)
+
+    username = str(data['username']).strip()
+    email = str(data['email']).strip().lower()
+    phone_number = str(data['phone_number']).strip()
+    password = str(data['password'])
+    if User.objects.filter(username__iexact=username).exists():
+        errors['username'] = 'Selle kasutajanimega konto on juba olemas.'
+    if User.objects.filter(email__iexact=email).exists():
+        errors['email'] = 'Selle e-postiga konto on juba olemas.'
+    try:
+        validate_email(email)
+    except ValidationError:
+        errors['email'] = 'Sisesta korrektne e-posti aadress.'
+    if not PHONE_PATTERN.fullmatch(phone_number):
+        errors['phone_number'] = 'Sisesta korrektne telefoninumber.'
+    if data.get('date_of_birth') and not parse_date(str(data['date_of_birth'])):
+        errors['date_of_birth'] = 'Sisesta korrektne kuupäev.'
+    try:
+        validate_password(password, user=User(username=username, email=email))
+    except ValidationError as validation_error:
+        errors['password'] = list(validation_error.messages)
+    if errors:
+        return _validation_errors(errors)
+
+    user = User.objects.create_user(
+        username=username,
+        email=email,
+        password=password,
+        first_name=str(data.get('first_name', '')).strip(),
+        last_name=str(data.get('last_name', '')).strip(),
+        phone_number=phone_number,
+        date_of_birth=data.get('date_of_birth') or None,
+    )
+    login(request, user)
+    return JsonResponse({'user': _user_data(user)}, status=201)
+
+
+@require_http_methods(['POST'])
+def user_login(request):
+    data, error = _json_body(request)
+    if error:
+        return error
+    username = str(data.get('username', '')).strip()
+    password = str(data.get('password', ''))
+    user = authenticate(request, username=username, password=password)
+    if user is None:
+        return JsonResponse({'error': 'Kasutajanimi või parool on vale.'}, status=400)
+    login(request, user)
+    return JsonResponse({'user': _user_data(user)})
+
+
+@require_http_methods(['POST'])
+def user_logout(request):
+    if not request.user.is_authenticated:
+        return JsonResponse({'error': 'Kasutaja ei ole sisse logitud.'}, status=401)
+    logout(request)
+    return JsonResponse({'status': 'ok'})
+
+
+@require_http_methods(['GET', 'PATCH'])
+def me(request):
+    if not request.user.is_authenticated:
+        return JsonResponse({'error': 'Autentimine on vajalik.'}, status=401)
+    if request.method == 'GET':
+        return JsonResponse({'user': _user_data(request.user)})
+
+    data, error = _json_body(request)
+    if error:
+        return error
+    allowed = {'email', 'first_name', 'last_name', 'phone_number', 'date_of_birth'}
+    errors = {}
+    unknown = set(data) - allowed
+    if unknown:
+        return _validation_errors({'detail': 'Profiilis ei saa seda välja muuta.'})
+    if 'email' in data:
+        email = str(data['email']).strip().lower()
+        try:
+            validate_email(email)
+        except ValidationError:
+            errors['email'] = 'Sisesta korrektne e-posti aadress.'
+        if User.objects.filter(email__iexact=email).exclude(pk=request.user.pk).exists():
+            errors['email'] = 'Selle e-postiga konto on juba olemas.'
+        data['email'] = email
+    if 'phone_number' in data and not PHONE_PATTERN.fullmatch(str(data['phone_number']).strip()):
+        errors['phone_number'] = 'Sisesta korrektne telefoninumber.'
+    if data.get('date_of_birth') and not parse_date(str(data['date_of_birth'])):
+        errors['date_of_birth'] = 'Sisesta korrektne kuupäev.'
+    if errors:
+        return _validation_errors(errors)
+    for field in allowed.intersection(data):
+        value = data[field] or None if field == 'date_of_birth' else str(data[field]).strip()
+        setattr(request.user, field, value)
+    request.user.save(update_fields=list(allowed.intersection(data)))
+    return JsonResponse({'user': _user_data(request.user)})
 
 
 def health(request):

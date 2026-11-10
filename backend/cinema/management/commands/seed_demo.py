@@ -2,7 +2,6 @@ import random
 from datetime import timedelta
 from decimal import Decimal
 
-from django.contrib.auth.hashers import make_password
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 from django.utils import timezone
@@ -61,10 +60,12 @@ class Command(BaseCommand):
                 phone_number=fake.phone_number()[:30],
                 email=f'demo{index:03}@example.test',
                 date_of_birth=fake.date_of_birth(minimum_age=18, maximum_age=75),
-                password_hash=make_password('DemoPass123!'),
             )
             for index in range(1, 41)
         ]
+        for user in users:
+            user.set_password('DemoPass123!')
+            user.save(update_fields=['password'])
         cinemas = [
             Cinema.objects.create(
                 name=f'{fake.city()} Kino {index}',

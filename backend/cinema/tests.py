@@ -1,7 +1,7 @@
 from django.test import SimpleTestCase, TestCase
 from django.urls import reverse
 
-from .models import Cinema, CinemaHall, Genre, Movie, MovieGenre, Screening
+from .models import Cinema, CinemaHall, Genre, Movie, MovieGenre, Screening, User
 
 
 class HealthViewTests(SimpleTestCase):
@@ -109,3 +109,88 @@ class CatalogueEndpointTests(TestCase):
         response = self.client.post(reverse('cinema:movies'))
 
         self.assertEqual(response.status_code, 405)
+
+
+class AuthenticationEndpointTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username='existing',
+            email='existing@example.test',
+            password='CorrectPass123!',
+            phone_number='+372 5555 5555',
+        )
+
+    def test_registration_hashes_password_and_logs_user_in(self):
+        response = self.client.post(
+            reverse('cinema:auth-register'),
+            data={
+                'username': 'new-user',
+                'email': 'new@example.test',
+                'password': 'CorrectPass123!',
+                'phone_number': '+372 5555 4444',
+            },
+            content_type='application/json',
+        )
+
+        self.assertEqual(response.status_code, 201)
+        user = User.objects.get(username='new-user')
+        self.assertNotEqual(user.password, 'CorrectPass123!')
+        self.assertTrue(user.check_password('CorrectPass123!'))
+        self.assertEqual(response.json()['user']['email'], 'new@example.test')
+
+    def test_duplicate_user_and_invalid_login_return_clear_errors(self):
+        duplicate = self.client.post(
+            reverse('cinema:auth-register'),
+            data={
+                'username': 'existing',
+                'email': 'another@example.test',
+                'password': 'CorrectPass123!',
+                'phone_number': '+372 5555 4444',
+            },
+            content_type='application/json',
+        )
+        login_response = self.client.post(
+            reverse('cinema:auth-login'),
+            data={'username': 'existing', 'password': 'wrong'},
+            content_type='application/json',
+        )
+
+        self.assertEqual(duplicate.status_code, 400)
+        self.assertIn('username', duplicate.json()['errors'])
+        self.assertEqual(login_response.status_code, 400)
+        self.assertIn('vale', login_response.json()['error'])
+
+    def test_me_only_returns_and_updates_current_user(self):
+        self.client.force_login(self.user)
+        other = User.objects.create_user(
+            username='other',
+            email='other@example.test',
+            password='CorrectPass123!',
+            phone_number='+372 5555 6666',
+        )
+
+        response = self.client.get(reverse('cinema:auth-me'))
+        update = self.client.patch(
+            reverse('cinema:auth-me'),
+            data={'first_name': 'Uus nimi', 'email': 'updated@example.test'},
+            content_type='application/json',
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()['user']['id'], self.user.id)
+        self.assertNotIn('password', response.json()['user'])
+        self.assertNotEqual(response.json()['user']['username'], other.username)
+        self.assertEqual(update.status_code, 200)
+        self.assertEqual(update.json()['user']['email'], 'updated@example.test')
+        self.assertEqual(User.objects.get(pk=self.user.pk).first_name, 'Uus nimi')
+
+    def test_logout_ends_session(self):
+        self.client.force_login(self.user)
+
+        response = self.client.post(reverse('cinema:auth-logout'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            self.client.get(reverse('cinema:auth-me')).status_code,
+            401,
+        )
