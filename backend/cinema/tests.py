@@ -140,3 +140,96 @@ class CatalogueEndpointTests(TestCase):
         response = self.client.post(reverse('cinema:movies'))
 
         self.assertEqual(response.status_code, 405)
+
+
+class BookingCancellationTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.cinema = Cinema.objects.create(
+            name='Booking Cinema',
+            street_address='Booking Street 1',
+            city='Tallinn',
+            postal_code='10111',
+            country='Eesti',
+        )
+        cls.hall = CinemaHall.objects.create(
+            cinema=cls.cinema,
+            name='Booking Hall',
+            screen_type='2D',
+            capacity=1,
+        )
+        cls.movie = Movie.objects.create(
+            title='Booking Movie',
+            duration=100,
+            language='eesti',
+        )
+        cls.screening = Screening.objects.create(
+            movie=cls.movie,
+            hall=cls.hall,
+            start_time='2026-10-14T12:00:00Z',
+            end_time='2026-10-14T13:40:00Z',
+            base_price='12.50',
+        )
+        cls.user = User.objects.create(
+            username='booking-user',
+            first_name='Booking',
+            last_name='User',
+            phone_number='5550000',
+            email='booking@example.com',
+            password_hash='test-hash',
+        )
+        cls.seat = Seat.objects.create(
+            hall=cls.hall,
+            row='C',
+            number=5,
+        )
+
+    def test_cancelling_booking_releases_its_seats(self):
+        booking = Booking.objects.create(
+            user=self.user,
+            screening=self.screening,
+            total='12.50',
+        )
+        BookedSeat.objects.create(
+            booking=booking,
+            screening=self.screening,
+            seat=self.seat,
+            price='12.50',
+        )
+
+        booking.cancel()
+
+        booking.refresh_from_db()
+        self.assertEqual(booking.status, Booking.Status.CANCELLED)
+        self.assertFalse(
+            BookedSeat.objects.filter(
+                screening=self.screening,
+                seat=self.seat,
+            ).exists(),
+        )
+
+        replacement = Booking.objects.create(
+            user=self.user,
+            screening=self.screening,
+            total='12.50',
+        )
+        BookedSeat.objects.create(
+            booking=replacement,
+            screening=self.screening,
+            seat=self.seat,
+            price='12.50',
+        )
+
+    def test_booking_status_has_only_defined_choices(self):
+        self.assertEqual(
+            set(Booking.Status.values),
+            {'ootel', 'kinnitatud', 't\u00fchistatud'},
+        )
+        invalid_booking = Booking(
+            user=self.user,
+            screening=self.screening,
+            status='invalid',
+            total='12.50',
+        )
+        with self.assertRaises(ValidationError):
+            invalid_booking.full_clean()

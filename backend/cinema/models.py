@@ -1,5 +1,5 @@
 from django.core.validators import MinValueValidator, MaxValueValidator
-from django.db import models
+from django.db import models, transaction
 
 
 class User(models.Model):
@@ -143,15 +143,39 @@ class Screening(models.Model):
 
 
 class Booking(models.Model):
+	class Status(models.TextChoices):
+		PENDING = 'ootel', 'Ootel'
+		CONFIRMED = 'kinnitatud', 'Kinnitatud'
+		CANCELLED = 't\u00fchistatud', 'T\u00dchistatud'
+
 	id = models.BigAutoField(primary_key=True)
 	user = models.ForeignKey(User, on_delete=models.CASCADE, db_column='kasutaja_id', related_name='bookings')
 	screening = models.ForeignKey(Screening, on_delete=models.CASCADE, db_column='seansi_id', related_name='bookings')
-	status = models.CharField(max_length=20, db_column='staatus', default='ootel')
+	status = models.CharField(
+		max_length=20,
+		db_column='staatus',
+		choices=Status,
+		default=Status.PENDING,
+	)
 	total = models.DecimalField(max_digits=8, decimal_places=2, db_column='kogusumma')
 	created_at = models.DateTimeField(db_column='loodud', auto_now_add=True)
 
 	class Meta:
 		db_table = 'broneeringud'
+		constraints = [
+			models.CheckConstraint(
+				condition=models.Q(
+					status__in=('ootel', 'kinnitatud', 't\u00fchistatud'),
+				),
+				name='booking_status_valid',
+			),
+		]
+
+	def cancel(self):
+		with transaction.atomic():
+			self.booked_seats.all().delete()
+			self.status = self.Status.CANCELLED
+			self.save(update_fields=('status',))
 
 	def __str__(self):
 		return f'Booking {self.pk} - {self.user}'
