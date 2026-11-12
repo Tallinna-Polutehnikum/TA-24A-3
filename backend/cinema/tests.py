@@ -10,10 +10,29 @@ from .models import (
     Genre,
     Movie,
     MovieGenre,
+    Payment,
+    Review,
     Screening,
     Seat,
     User,
 )
+
+
+class CinemaModelTests(SimpleTestCase):
+    def test_models_use_big_auto_fields(self):
+        models = (
+            User, Cinema, CinemaHall, Seat, Movie, Genre, Screening,
+            Booking, BookedSeat, Payment, Review, MovieGenre,
+        )
+
+        self.assertTrue(all(model._meta.pk.get_internal_type() == 'BigAutoField' for model in models))
+
+    def test_movie_string_and_url_validation(self):
+        movie = Movie(title='Test Movie', poster_url='not-a-url')
+
+        self.assertEqual(str(movie), 'Test Movie')
+        with self.assertRaises(ValidationError):
+            movie.full_clean()
 
 
 class HealthViewTests(SimpleTestCase):

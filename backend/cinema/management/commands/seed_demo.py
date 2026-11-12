@@ -58,7 +58,7 @@ class Command(BaseCommand):
                 username=f'demo_{index:03}',
                 first_name=fake.first_name(),
                 last_name=fake.last_name(),
-                phone_number=fake.phone_number()[:30],
+                phone_number=f'+372 5{random.randint(1000000, 9999999)}',
                 email=f'demo{index:03}@example.test',
                 date_of_birth=fake.date_of_birth(minimum_age=18, maximum_age=75),
                 password_hash=make_password('DemoPass123!'),
