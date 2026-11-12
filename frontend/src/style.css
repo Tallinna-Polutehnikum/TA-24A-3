@@ -59,7 +59,8 @@ h1,
 h2,
 h3 {
   margin: 0;
-  color: var(--ink);
+  color: var(--ink);fix: protect booking and payment history
+
   font-family: var(--serif);
   font-weight: 700;
 }
