@@ -1,4 +1,4 @@
-from django.test import SimpleTestCase, TestCase
+from django.test import Client, SimpleTestCase, TestCase
 from django.urls import reverse
 
 from .models import Cinema, CinemaHall, Genre, Movie, MovieGenre, Screening, User
@@ -113,6 +113,9 @@ class CatalogueEndpointTests(TestCase):
 
 class AuthenticationEndpointTests(TestCase):
     def setUp(self):
+        self.client = Client(enforce_csrf_checks=True)
+        csrf_response = self.client.get(reverse('cinema:auth-csrf'))
+        self.csrf_token = csrf_response.cookies['csrftoken'].value
         self.user = User.objects.create_user(
             username='existing',
             email='existing@example.test',
@@ -120,16 +123,23 @@ class AuthenticationEndpointTests(TestCase):
             phone_number='+372 5555 5555',
         )
 
+    def post_json(self, url, data):
+        return self.client.post(
+            url,
+            data=data,
+            content_type='application/json',
+            HTTP_X_CSRFTOKEN=self.csrf_token,
+        )
+
     def test_registration_hashes_password_and_logs_user_in(self):
-        response = self.client.post(
+        response = self.post_json(
             reverse('cinema:auth-register'),
-            data={
+            {
                 'username': 'new-user',
                 'email': 'new@example.test',
                 'password': 'CorrectPass123!',
                 'phone_number': '+372 5555 4444',
             },
-            content_type='application/json',
         )
 
         self.assertEqual(response.status_code, 201)
@@ -139,26 +149,36 @@ class AuthenticationEndpointTests(TestCase):
         self.assertEqual(response.json()['user']['email'], 'new@example.test')
 
     def test_duplicate_user_and_invalid_login_return_clear_errors(self):
-        duplicate = self.client.post(
+        duplicate = self.post_json(
             reverse('cinema:auth-register'),
-            data={
+            {
                 'username': 'existing',
                 'email': 'another@example.test',
                 'password': 'CorrectPass123!',
                 'phone_number': '+372 5555 4444',
             },
-            content_type='application/json',
         )
-        login_response = self.client.post(
+        login_response = self.post_json(
             reverse('cinema:auth-login'),
-            data={'username': 'existing', 'password': 'wrong'},
-            content_type='application/json',
+            {'username': 'existing', 'password': 'wrong'},
         )
 
         self.assertEqual(duplicate.status_code, 400)
         self.assertIn('username', duplicate.json()['errors'])
+
+        duplicate_email = self.post_json(
+            reverse('cinema:auth-register'),
+            {
+                'username': 'another-user',
+                'email': 'existing@example.test',
+                'password': 'CorrectPass123!',
+                'phone_number': '+372 5555 4444',
+            },
+        )
         self.assertEqual(login_response.status_code, 400)
         self.assertIn('vale', login_response.json()['error'])
+        self.assertEqual(duplicate_email.status_code, 400)
+        self.assertIn('email', duplicate_email.json()['errors'])
 
     def test_me_only_returns_and_updates_current_user(self):
         self.client.force_login(self.user)
@@ -174,6 +194,7 @@ class AuthenticationEndpointTests(TestCase):
             reverse('cinema:auth-me'),
             data={'first_name': 'Uus nimi', 'email': 'updated@example.test'},
             content_type='application/json',
+            HTTP_X_CSRFTOKEN=self.csrf_token,
         )
 
         self.assertEqual(response.status_code, 200)
@@ -187,10 +208,43 @@ class AuthenticationEndpointTests(TestCase):
     def test_logout_ends_session(self):
         self.client.force_login(self.user)
 
-        response = self.client.post(reverse('cinema:auth-logout'))
+        response = self.client.post(
+            reverse('cinema:auth-logout'),
+            HTTP_X_CSRFTOKEN=self.csrf_token,
+        )
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(
             self.client.get(reverse('cinema:auth-me')).status_code,
             401,
         )
+
+    def test_profile_rejects_non_string_and_future_dates(self):
+        self.client.force_login(self.user)
+
+        invalid_type = self.client.patch(
+            reverse('cinema:auth-me'),
+            data={'first_name': {'unexpected': 'object'}},
+            content_type='application/json',
+            HTTP_X_CSRFTOKEN=self.csrf_token,
+        )
+        future_date = self.client.patch(
+            reverse('cinema:auth-me'),
+            data={'date_of_birth': '2999-01-01'},
+            content_type='application/json',
+            HTTP_X_CSRFTOKEN=self.csrf_token,
+        )
+
+        self.assertEqual(invalid_type.status_code, 400)
+        self.assertIn('first_name', invalid_type.json()['errors'])
+        self.assertEqual(future_date.status_code, 400)
+        self.assertIn('date_of_birth', future_date.json()['errors'])
+
+    def test_authentication_requests_require_csrf(self):
+        response = Client(enforce_csrf_checks=True).post(
+            reverse('cinema:auth-login'),
+            data={'username': 'existing', 'password': 'CorrectPass123!'},
+            content_type='application/json',
+        )
+
+        self.assertEqual(response.status_code, 403)

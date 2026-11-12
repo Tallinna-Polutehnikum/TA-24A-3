@@ -70,8 +70,12 @@ const router = createRouter({
 router.beforeEach(async (to) => {
     if (!to.meta.requiresAuth) return true
     const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000'
-    const response = await fetch(`${apiUrl}/api/cinema/auth/me/`, { credentials: 'include' })
-    return response.ok ? true : { name: 'User' }
+    try {
+        const response = await fetch(`${apiUrl}/api/cinema/auth/me/`, { credentials: 'include' })
+        return response.ok ? true : { name: 'User' }
+    } catch {
+        return { name: 'User' }
+    }
 })
 
 export default router

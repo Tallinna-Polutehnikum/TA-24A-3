@@ -1,10 +1,12 @@
 import json
 import re
+from datetime import date
 
 from django.contrib.auth import authenticate, get_user_model, login, logout
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
+from django.db import IntegrityError, transaction
 from django.http import JsonResponse
 from django.middleware.csrf import get_token
 from django.shortcuts import get_object_or_404
@@ -80,8 +82,10 @@ def register(request):
         errors['email'] = 'Sisesta korrektne e-posti aadress.'
     if not PHONE_PATTERN.fullmatch(phone_number):
         errors['phone_number'] = 'Sisesta korrektne telefoninumber.'
-    if data.get('date_of_birth') and not parse_date(str(data['date_of_birth'])):
-        errors['date_of_birth'] = 'Sisesta korrektne kuupäev.'
+    if data.get('date_of_birth'):
+        parsed_date = parse_date(str(data['date_of_birth']))
+        if not parsed_date or parsed_date > date.today():
+            errors['date_of_birth'] = 'Sisesta korrektne kuupäev.'
     try:
         validate_password(password, user=User(username=username, email=email))
     except ValidationError as validation_error:
@@ -89,15 +93,24 @@ def register(request):
     if errors:
         return _validation_errors(errors)
 
-    user = User.objects.create_user(
-        username=username,
-        email=email,
-        password=password,
-        first_name=str(data.get('first_name', '')).strip(),
-        last_name=str(data.get('last_name', '')).strip(),
-        phone_number=phone_number,
-        date_of_birth=data.get('date_of_birth') or None,
-    )
+    try:
+        with transaction.atomic():
+            user = User.objects.create_user(
+                username=username,
+                email=email,
+                password=password,
+                first_name=str(data.get('first_name', '')).strip(),
+                last_name=str(data.get('last_name', '')).strip(),
+                phone_number=phone_number,
+                date_of_birth=data.get('date_of_birth') or None,
+            )
+    except IntegrityError:
+        errors = {}
+        if User.objects.filter(username__iexact=username).exists():
+            errors['username'] = 'Selle kasutajanimega konto on juba olemas.'
+        if User.objects.filter(email__iexact=email).exists():
+            errors['email'] = 'Selle e-postiga konto on juba olemas.'
+        return _validation_errors(errors or {'detail': 'Konto loomine ebaõnnestus.'})
     login(request, user)
     return JsonResponse({'user': _user_data(user)}, status=201)
 
@@ -139,6 +152,13 @@ def me(request):
     unknown = set(data) - allowed
     if unknown:
         return _validation_errors({'detail': 'Profiilis ei saa seda välja muuta.'})
+    for field in {'email', 'first_name', 'last_name', 'phone_number'} & set(data):
+        if not isinstance(data[field], str):
+            errors[field] = 'Sisesta tekst.'
+    if 'date_of_birth' in data and data['date_of_birth'] is not None and not isinstance(data['date_of_birth'], str):
+        errors['date_of_birth'] = 'Sisesta korrektne kuupäev.'
+    if errors:
+        return _validation_errors(errors)
     if 'email' in data:
         email = str(data['email']).strip().lower()
         try:
@@ -150,8 +170,10 @@ def me(request):
         data['email'] = email
     if 'phone_number' in data and not PHONE_PATTERN.fullmatch(str(data['phone_number']).strip()):
         errors['phone_number'] = 'Sisesta korrektne telefoninumber.'
-    if data.get('date_of_birth') and not parse_date(str(data['date_of_birth'])):
-        errors['date_of_birth'] = 'Sisesta korrektne kuupäev.'
+    if data.get('date_of_birth'):
+        parsed_date = parse_date(data['date_of_birth'])
+        if not parsed_date or parsed_date > date.today():
+            errors['date_of_birth'] = 'Sisesta korrektne kuupäev.'
     if errors:
         return _validation_errors(errors)
     for field in allowed.intersection(data):
