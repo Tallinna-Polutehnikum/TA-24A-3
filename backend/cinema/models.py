@@ -13,7 +13,10 @@ class User(models.Model):
 	password_hash = models.TextField()
 
 	class Meta:
-		db_table = 'user'
+		db_table = 'kasutajad'
+
+	def __str__(self):
+		return self.username
 
 
 class Cinema(models.Model):
@@ -26,6 +29,9 @@ class Cinema(models.Model):
 
 	class Meta:
 		db_table = 'kino'
+
+	def __str__(self):
+		return self.name
 
 
 class CinemaHall(models.Model):
@@ -43,9 +49,12 @@ class CinemaHall(models.Model):
 	class Meta:
 		db_table = 'kinosaalid'
 
+	def __str__(self):
+		return f'{self.cinema} - {self.name}'
+
 
 class Seat(models.Model):
-	id = models.AutoField(primary_key=True)
+	id = models.BigAutoField(primary_key=True)
 	hall = models.ForeignKey(
 		CinemaHall,
 		on_delete=models.CASCADE,
@@ -61,30 +70,39 @@ class Seat(models.Model):
 			models.UniqueConstraint(fields=('hall', 'row', 'number'), name='unique_seat_in_hall'),
 		]
 
+	def __str__(self):
+		return f'{self.hall}, row {self.row}, seat {self.number}'
+
 
 class Movie(models.Model):
-	id = models.AutoField(primary_key=True)
+	id = models.BigAutoField(primary_key=True)
 	title = models.CharField(max_length=255, db_column='pealkiri', default='')
 	description = models.TextField(db_column='kirjeldus', null=True, blank=True)
 	duration = models.PositiveSmallIntegerField(db_column='filmi_pikkus', default=0)
 	release_date = models.DateField(db_column='väljalaskekuupäev', null=True, blank=True)
 	age_rating = models.CharField(max_length=10, db_column='vanusepiirang', null=True, blank=True)
 	language = models.CharField(max_length=50, db_column='keel', null=True, blank=True)
-	poster_url = models.CharField(max_length=500, db_column='plakati_url', null=True, blank=True)
-	trailer_url = models.CharField(max_length=500, db_column='treileri_url', null=True, blank=True)
-	is_featured = models.BooleanField(db_column='väikeväärtus', default=False)
+	poster_url = models.URLField(max_length=500, db_column='plakati_url', null=True, blank=True)
+	trailer_url = models.URLField(max_length=500, db_column='treileri_url', null=True, blank=True)
+	is_featured = models.BooleanField(db_column='esiletõstetud', default=False)
 	genres = models.ManyToManyField('Genre', through='MovieGenre', related_name='movies')
 
 	class Meta:
 		db_table = 'filmid'
 
+	def __str__(self):
+		return self.title
+
 
 class Genre(models.Model):
-	id = models.AutoField(primary_key=True)
+	id = models.BigAutoField(primary_key=True)
 	name = models.CharField(max_length=50, db_column='nimi')
 
 	class Meta:
 		db_table = 'žanrid'
+
+	def __str__(self):
+		return self.name
 
 
 class MovieGenre(models.Model):
@@ -97,9 +115,12 @@ class MovieGenre(models.Model):
 			models.UniqueConstraint(fields=('movie', 'genre'), name='unique_movie_genre'),
 		]
 
+	def __str__(self):
+		return f'{self.movie} - {self.genre}'
+
 
 class Screening(models.Model):
-	id = models.AutoField(primary_key=True)
+	id = models.BigAutoField(primary_key=True)
 	movie = models.ForeignKey(Movie, on_delete=models.CASCADE, db_column='filmi_id', related_name='screenings')
 	hall = models.ForeignKey(CinemaHall, on_delete=models.CASCADE, db_column='saali_id', related_name='screenings')
 	start_time = models.DateTimeField(db_column='algus_aeg')
@@ -117,9 +138,12 @@ class Screening(models.Model):
 			models.CheckConstraint(condition=models.Q(end_time__gt=models.F('start_time')), name='screening_end_after_start'),
 		]
 
+	def __str__(self):
+		return f'{self.movie} - {self.start_time}'
+
 
 class Booking(models.Model):
-	id = models.AutoField(primary_key=True)
+	id = models.BigAutoField(primary_key=True)
 	user = models.ForeignKey(User, on_delete=models.CASCADE, db_column='kasutaja_id', related_name='bookings')
 	screening = models.ForeignKey(Screening, on_delete=models.CASCADE, db_column='seansi_id', related_name='bookings')
 	status = models.CharField(max_length=20, db_column='staatus', default='ootel')
@@ -129,9 +153,12 @@ class Booking(models.Model):
 	class Meta:
 		db_table = 'broneeringud'
 
+	def __str__(self):
+		return f'Booking {self.pk} - {self.user}'
+
 
 class BookedSeat(models.Model):
-	id = models.AutoField(primary_key=True)
+	id = models.BigAutoField(primary_key=True)
 	booking = models.ForeignKey(Booking, on_delete=models.CASCADE, db_column='broneeringu_id', related_name='booked_seats')
 	screening = models.ForeignKey(Screening, on_delete=models.CASCADE, db_column='seansi_id', related_name='booked_seats')
 	seat = models.ForeignKey(Seat, on_delete=models.CASCADE, db_column='istekoha_id', related_name='bookings')
@@ -143,9 +170,12 @@ class BookedSeat(models.Model):
 			models.UniqueConstraint(fields=('screening', 'seat'), name='unique_booked_seat_per_screening'),
 		]
 
+	def __str__(self):
+		return f'{self.seat} - {self.screening}'
+
 
 class Payment(models.Model):
-	id = models.AutoField(primary_key=True)
+	id = models.BigAutoField(primary_key=True)
 	booking = models.ForeignKey(Booking, on_delete=models.CASCADE, db_column='broneeringu_id', related_name='payments')
 	amount = models.DecimalField(max_digits=8, decimal_places=2, db_column='summa')
 	method = models.CharField(max_length=30, db_column='makseviis')
@@ -156,9 +186,12 @@ class Payment(models.Model):
 	class Meta:
 		db_table = 'maksed'
 
+	def __str__(self):
+		return f'Payment {self.pk} - {self.status}'
+
 
 class Review(models.Model):
-	id = models.AutoField(primary_key=True)
+	id = models.BigAutoField(primary_key=True)
 	user = models.ForeignKey(User, on_delete=models.CASCADE, db_column='kasutaja_id', related_name='reviews')
 	movie = models.ForeignKey(Movie, on_delete=models.CASCADE, db_column='filmi_id', related_name='reviews')
 	rating = models.PositiveSmallIntegerField(
@@ -172,3 +205,6 @@ class Review(models.Model):
 
 	class Meta:
 		db_table = 'arvustused'
+
+	def __str__(self):
+		return f'{self.movie} review by {self.user}'
