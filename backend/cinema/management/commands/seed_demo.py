@@ -155,10 +155,11 @@ class Command(BaseCommand):
             seat_count = random.randint(1, 3)
             seats = random.sample(seat_options, seat_count)
             price = screening.base_price
+            status = random.choice(tuple(Booking.Status))
             booking = Booking.objects.create(
                 user=users[index % len(users)],
                 screening=screening,
-                status=random.choice(('ootel', 'kinnitatud', 'tühistatud')),
+                status=status,
                 total=price * seat_count,
             )
             bookings.append(booking)
@@ -170,6 +171,10 @@ class Command(BaseCommand):
                     price=price,
                 )
                 booked_seats.add((screening.pk, seat.pk))
+            if status == Booking.Status.CANCELLED:
+                booking.cancel()
+                for seat in seats:
+                    booked_seats.discard((screening.pk, seat.pk))
 
         for booking in bookings:
             payment_status = random.choice(('edukas', 'ootel', 'ebaõnnestunud'))
