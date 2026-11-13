@@ -42,9 +42,9 @@ Käivita käsud projekti juurkaustast:
 
 ```powershell
 docker compose up --build -d
-docker compose exec backend python manage.py migrate
 ```
 
+Backendi käivitamisel rakendatakse andmebaasi migratsioonid automaatselt.
 Teenused on seejärel kättesaadavad:
 
 - frontend: <http://localhost:5173>
@@ -54,7 +54,9 @@ Teenused on seejärel kättesaadavad:
 - kinod: <http://localhost:8000/api/cinema/cinemas/>
 - saalid: <http://localhost:8000/api/cinema/halls/>
 - seansid: <http://localhost:8000/api/cinema/screenings/>
-- PostgreSQL: `localhost:5432`
+
+PostgreSQL pole hosti pordil avaldatud; backend ühendub sellega Compose'i võrgus
+aadressil `db:5432`.
 
 Frontend kasutab vaikimisi backend'i aadressi `http://localhost:8000`.
 Teise aadressi kasutamiseks määra enne frontendi käivitamist
