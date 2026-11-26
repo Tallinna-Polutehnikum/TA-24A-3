@@ -69,5 +69,21 @@ services:
     depends_on:
       - backend
 
+  pgbench:
+    image: postgres:16-alpine
+    profiles: ["tools"]
+    entrypoint: ["pgbench"]
+    environment:
+      PGHOST: db
+      PGPORT: 5432
+      PGUSER: ${POSTGRES_USER:-Admin}
+      PGPASSWORD: ${POSTGRES_PASSWORD:-pro123}
+      PGDATABASE: ${PGBENCH_DATABASE:-cinema_pgbench}
+    volumes:
+      - ./tests/pgbench:/scripts
+    depends_on:
+      db:
+        condition: service_healthy
+
 volumes:
   postgres_data:
