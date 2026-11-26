@@ -38,7 +38,8 @@ class SeatAdmin(admin.ModelAdmin):
 
 @admin.register(Movie)
 class MovieAdmin(admin.ModelAdmin):
-    list_display = ('title', 'release_date', 'duration', 'is_featured')
+    list_display = ('title', 'release_date', 'duration', 'is_featured', 'is_active')
+    list_filter = ('is_active',)
 
 
 @admin.register(Genre)

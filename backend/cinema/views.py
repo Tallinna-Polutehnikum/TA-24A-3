@@ -73,14 +73,18 @@ def _screening_data(screening):
 
 @require_safe
 def movies(request):
-    results = Movie.objects.prefetch_related('genres').order_by('id')
+    results = (
+        Movie.objects.filter(is_active=True)
+        .prefetch_related('genres')
+        .order_by('id')
+    )
     return JsonResponse({'results': [_movie_data(movie) for movie in results]})
 
 
 @require_safe
 def movie_detail(request, movie_id):
     movie = get_object_or_404(
-        Movie.objects.prefetch_related('genres'),
+        Movie.objects.filter(is_active=True).prefetch_related('genres'),
         pk=movie_id,
     )
     return JsonResponse(_movie_data(movie))
