@@ -1,4 +1,6 @@
 from django.core.exceptions import ValidationError
+from django.db.models import PROTECT
+from django.db.models.deletion import ProtectedError
 from django.core.management import call_command
 from django.db import IntegrityError, transaction
 from django.test import SimpleTestCase, TestCase
@@ -33,8 +35,26 @@ class CinemaModelTests(SimpleTestCase):
         movie = Movie(title='Test Movie', poster_url='not-a-url')
 
         self.assertEqual(str(movie), 'Test Movie')
+        self.assertTrue(movie.is_active)
         with self.assertRaises(ValidationError):
             movie.full_clean()
+
+    def test_booking_history_relations_protect_referenced_records(self):
+        protected_relations = (
+            (Screening, 'movie'),
+            (Screening, 'hall'),
+            (Booking, 'user'),
+            (Booking, 'screening'),
+            (BookedSeat, 'seat'),
+            (Payment, 'booking'),
+        )
+
+        for model, field_name in protected_relations:
+            with self.subTest(model=model.__name__, field=field_name):
+                self.assertIs(
+                    model._meta.get_field(field_name).remote_field.on_delete,
+                    PROTECT,
+                )
 
 
 class HealthViewTests(SimpleTestCase):
@@ -249,6 +269,19 @@ class CatalogueEndpointTests(TestCase):
 
         self.assertEqual(response.status_code, 404)
 
+    def test_inactive_movies_are_hidden_from_the_catalogue(self):
+        self.movie.is_active = False
+        self.movie.save(update_fields=('is_active',))
+
+        list_response = self.client.get(reverse('cinema:movies'))
+        detail_response = self.client.get(
+            reverse('cinema:movie-detail', args=[self.movie.id]),
+        )
+
+        self.assertEqual(list_response.status_code, 200)
+        self.assertEqual(list_response.json()['results'], [])
+        self.assertEqual(detail_response.status_code, 404)
+
     def test_catalogue_endpoints_reject_write_requests(self):
         response = self.client.post(reverse('cinema:movies'))
 
@@ -332,6 +365,39 @@ class BookingCancellationTests(TestCase):
             seat=self.seat,
             price='12.50',
         )
+
+    def test_payment_history_protects_related_records_from_deletion(self):
+        booking = Booking.objects.create(
+            user=self.user,
+            screening=self.screening,
+            total='12.50',
+        )
+        BookedSeat.objects.create(
+            booking=booking,
+            screening=self.screening,
+            seat=self.seat,
+            price='12.50',
+        )
+        payment = Payment.objects.create(
+            booking=booking,
+            amount='12.50',
+            method='card',
+            status='paid',
+        )
+        records = (
+            self.movie,
+            self.hall,
+            self.user,
+            self.screening,
+            self.seat,
+            booking,
+        )
+
+        for record in records:
+            with self.subTest(record=record):
+                with self.assertRaises(ProtectedError):
+                    record.delete()
+                self.assertTrue(Payment.objects.filter(pk=payment.pk).exists())
 
     def test_booking_status_has_only_defined_choices(self):
         self.assertEqual(

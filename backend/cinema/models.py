@@ -85,6 +85,7 @@ class Movie(models.Model):
 	poster_url = models.URLField(max_length=500, db_column='plakati_url', null=True, blank=True)
 	trailer_url = models.URLField(max_length=500, db_column='treileri_url', null=True, blank=True)
 	is_featured = models.BooleanField(db_column='esiletõstetud', default=False)
+	is_active = models.BooleanField(default=True)
 	genres = models.ManyToManyField('Genre', through='MovieGenre', related_name='movies')
 
 	class Meta:
@@ -121,8 +122,8 @@ class MovieGenre(models.Model):
 
 class Screening(models.Model):
 	id = models.BigAutoField(primary_key=True)
-	movie = models.ForeignKey(Movie, on_delete=models.CASCADE, db_column='filmi_id', related_name='screenings')
-	hall = models.ForeignKey(CinemaHall, on_delete=models.CASCADE, db_column='saali_id', related_name='screenings')
+	movie = models.ForeignKey(Movie, on_delete=models.PROTECT, db_column='filmi_id', related_name='screenings')
+	hall = models.ForeignKey(CinemaHall, on_delete=models.PROTECT, db_column='saali_id', related_name='screenings')
 	start_time = models.DateTimeField(db_column='algus_aeg')
 	end_time = models.DateTimeField(db_column='lopu_aeg')
 	language = models.CharField(max_length=50, db_column='keel', null=True, blank=True)
@@ -149,8 +150,8 @@ class Booking(models.Model):
 		CANCELLED = 't\u00fchistatud', 'T\u00dchistatud'
 
 	id = models.BigAutoField(primary_key=True)
-	user = models.ForeignKey(User, on_delete=models.CASCADE, db_column='kasutaja_id', related_name='bookings')
-	screening = models.ForeignKey(Screening, on_delete=models.CASCADE, db_column='seansi_id', related_name='bookings')
+	user = models.ForeignKey(User, on_delete=models.PROTECT, db_column='kasutaja_id', related_name='bookings')
+	screening = models.ForeignKey(Screening, on_delete=models.PROTECT, db_column='seansi_id', related_name='bookings')
 	status = models.CharField(
 		max_length=20,
 		db_column='staatus',
@@ -185,7 +186,7 @@ class BookedSeat(models.Model):
 	id = models.BigAutoField(primary_key=True)
 	booking = models.ForeignKey(Booking, on_delete=models.CASCADE, db_column='broneeringu_id', related_name='booked_seats')
 	screening = models.ForeignKey(Screening, on_delete=models.CASCADE, db_column='seansi_id', related_name='booked_seats')
-	seat = models.ForeignKey(Seat, on_delete=models.CASCADE, db_column='istekoha_id', related_name='bookings')
+	seat = models.ForeignKey(Seat, on_delete=models.PROTECT, db_column='istekoha_id', related_name='bookings')
 	price = models.DecimalField(max_digits=8, decimal_places=2, db_column='hind')
 
 	class Meta:
@@ -200,7 +201,7 @@ class BookedSeat(models.Model):
 
 class Payment(models.Model):
 	id = models.BigAutoField(primary_key=True)
-	booking = models.ForeignKey(Booking, on_delete=models.CASCADE, db_column='broneeringu_id', related_name='payments')
+	booking = models.ForeignKey(Booking, on_delete=models.PROTECT, db_column='broneeringu_id', related_name='payments')
 	amount = models.DecimalField(max_digits=8, decimal_places=2, db_column='summa')
 	method = models.CharField(max_length=30, db_column='makseviis')
 	status = models.CharField(max_length=20, db_column='staatus')
