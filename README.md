@@ -31,6 +31,12 @@ on järgmine arendusetapp.
 - **Andmebaas:** PostgreSQL 16
 - **Arenduskeskkond:** Docker Compose
 
+## Koormustestimise tööriistad
+
+| Nimi | Tööriist | Dokumentatsioon |
+| --- | --- | --- |
+| Jan Tahvonen | Locust | [Locust load testing](docs/testing/locust.md) |
+
 ## Eeldused
 
 - Docker Desktop koos Docker Compose'iga

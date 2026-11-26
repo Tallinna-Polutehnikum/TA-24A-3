@@ -1,6 +1,8 @@
 from django.core.exceptions import ValidationError
 from django.db.models import PROTECT
 from django.db.models.deletion import ProtectedError
+from django.core.management import call_command
+from django.db import IntegrityError, transaction
 from django.test import SimpleTestCase, TestCase
 from django.urls import reverse
 
@@ -64,6 +66,117 @@ class HealthViewTests(SimpleTestCase):
             'app': 'cinema',
             'status': 'ok',
         })
+
+
+class DatabaseConstraintTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.cinema = Cinema.objects.create(
+            name='Constraint Cinema',
+            street_address='Constraint Street 1',
+            city='Tallinn',
+            postal_code='10111',
+            country='Eesti',
+        )
+        cls.hall = CinemaHall.objects.create(
+            cinema=cls.cinema,
+            name='Constraint Hall',
+            screen_type='2D',
+            capacity=2,
+        )
+        cls.movie = Movie.objects.create(
+            title='Constraint Movie',
+            duration=100,
+            language='eesti',
+        )
+        cls.screening = Screening.objects.create(
+            movie=cls.movie,
+            hall=cls.hall,
+            start_time='2026-10-13T12:00:00Z',
+            end_time='2026-10-13T13:40:00Z',
+            base_price='12.50',
+        )
+        cls.user = User.objects.create(
+            username='constraint-user',
+            first_name='Constraint',
+            last_name='User',
+            phone_number='5550000',
+            email='constraint@example.com',
+            password_hash='test-hash',
+        )
+        cls.seat = Seat.objects.create(hall=cls.hall, row='A', number=1)
+
+    def test_seat_cannot_be_booked_twice_for_one_screening(self):
+        first_booking = Booking.objects.create(
+            user=self.user,
+            screening=self.screening,
+            total='12.50',
+        )
+        second_booking = Booking.objects.create(
+            user=self.user,
+            screening=self.screening,
+            total='12.50',
+        )
+        BookedSeat.objects.create(
+            booking=first_booking,
+            screening=self.screening,
+            seat=self.seat,
+            price='12.50',
+        )
+
+        with self.assertRaises(IntegrityError):
+            with transaction.atomic():
+                BookedSeat.objects.create(
+                    booking=second_booking,
+                    screening=self.screening,
+                    seat=self.seat,
+                    price='12.50',
+                )
+
+    def test_screening_end_must_be_after_start(self):
+        for end_time in ('2026-10-13T12:00:00Z', '2026-10-13T11:59:00Z'):
+            with self.subTest(end_time=end_time):
+                with self.assertRaises(IntegrityError):
+                    with transaction.atomic():
+                        Screening.objects.create(
+                            movie=self.movie,
+                            hall=self.hall,
+                            start_time='2026-10-13T12:00:00Z',
+                            end_time=end_time,
+                            base_price='12.50',
+                        )
+
+    def test_hall_cannot_have_duplicate_seats(self):
+        with self.assertRaises(IntegrityError):
+            with transaction.atomic():
+                Seat.objects.create(hall=self.hall, row='A', number=1)
+
+
+class DemoSeederTests(TestCase):
+    def test_seed_demo_creates_expected_data_and_movie_genres(self):
+        call_command('seed_demo')
+
+        expected_counts = (
+            (User, 40),
+            (Cinema, 3),
+            (CinemaHall, 9),
+            (Seat, 864),
+            (Movie, 20),
+            (Genre, 10),
+            (Screening, 120),
+            (Booking, 120),
+            (Payment, 120),
+            (Review, 60),
+        )
+        for model, expected_count in expected_counts:
+            with self.subTest(model=model.__name__):
+                self.assertEqual(model.objects.count(), expected_count)
+
+        self.assertTrue(MovieGenre.objects.exists())
+        self.assertEqual(
+            MovieGenre.objects.values('movie_id').distinct().count(),
+            Movie.objects.count(),
+        )
 
 
 class CatalogueEndpointTests(TestCase):
