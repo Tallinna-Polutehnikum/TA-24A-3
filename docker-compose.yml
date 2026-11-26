@@ -55,5 +55,19 @@ services:
     depends_on:
       - backend
 
+  locust:
+    image: locustio/locust:2.42.0
+    container_name: locust_cinema
+    restart: "no"
+    volumes:
+      - ./tests/load:/mnt/locust
+    ports:
+      - "8089:8089"
+    environment:
+      LOCUST_HOST: http://backend:8000
+    command: -f /mnt/locust/locustfile.py --host http://backend:8000
+    depends_on:
+      - backend
+
 volumes:
   postgres_data:

@@ -33,12 +33,31 @@ class Command(BaseCommand):
             action='store_true',
             help='Delete existing cinema data before creating demo data.',
         )
+        parser.add_argument(
+            '--screenings',
+            type=int,
+            default=120,
+            help='Number of screenings to create (default: 120).',
+        )
+        parser.add_argument(
+            '--tickets',
+            type=int,
+            default=120,
+            help='Number of booked seats to create (default: 120).',
+        )
 
     @transaction.atomic
     def handle(self, *args, **options):
         fake = Faker('et_EE')
         Faker.seed(2403)
         random.seed(2403)
+        screening_count = options['screenings']
+        ticket_count = options['tickets']
+
+        if screening_count < 1:
+            raise CommandError('--screenings must be at least 1.')
+        if ticket_count < 0:
+            raise CommandError('--tickets must not be negative.')
 
         if not options['clear'] and any(
             model.objects.exists()
@@ -129,7 +148,7 @@ class Command(BaseCommand):
         now = timezone.now()
         screenings = []
         screening_seats = {}
-        for index in range(120):
+        for index in range(screening_count):
             hall = halls[index % len(halls)]
             movie = movies[index % len(movies)]
             starts_at = now + timedelta(
@@ -149,43 +168,51 @@ class Command(BaseCommand):
             screening_seats[screening.pk] = seats_by_hall[hall.pk]
 
         bookings = []
-        booked_seats = set()
-        for index, screening in enumerate(screenings):
+        ticket_records = []
+        for index in range(ticket_count):
+            screening = screenings[index % len(screenings)]
             seat_options = screening_seats[screening.pk]
-            seat_count = random.randint(1, 3)
-            seats = random.sample(seat_options, seat_count)
-            price = screening.base_price
+            seat_offset = index // len(screenings)
+            seat = seat_options[seat_offset % len(seat_options)]
             status = random.choice(tuple(Booking.Status))
-            booking = Booking.objects.create(
+            price = screening.base_price
+            bookings.append(Booking(
                 user=users[index % len(users)],
                 screening=screening,
                 status=status,
-                total=price * seat_count,
-            )
-            bookings.append(booking)
-            for seat in seats:
-                BookedSeat.objects.create(
+                total=price,
+                created_at=now,
+            ))
+
+        Booking.objects.bulk_create(bookings, batch_size=1000)
+
+        for index, booking in enumerate(bookings):
+            screening = booking.screening
+            seat_options = screening_seats[screening.pk]
+            seat_offset = index // len(screenings)
+            seat = seat_options[seat_offset % len(seat_options)]
+            if booking.status != Booking.Status.CANCELLED:
+                ticket_records.append(BookedSeat(
                     booking=booking,
                     screening=screening,
                     seat=seat,
-                    price=price,
-                )
-                booked_seats.add((screening.pk, seat.pk))
-            if status == Booking.Status.CANCELLED:
-                booking.cancel()
-                for seat in seats:
-                    booked_seats.discard((screening.pk, seat.pk))
+                    price=screening.base_price,
+                ))
 
-        for booking in bookings:
-            payment_status = random.choice(('edukas', 'ootel', 'ebaõnnestunud'))
-            Payment.objects.create(
+        BookedSeat.objects.bulk_create(ticket_records, batch_size=1000)
+
+        payments = [
+            Payment(
                 booking=booking,
                 amount=booking.total,
                 method=random.choice(('kaart', 'ülekanne', 'mobiilimakse')),
-                status=payment_status,
+                status=random.choice(('edukas', 'ootel', 'ebaõnnestunud')),
                 reference=fake.uuid4(),
-                paid_at=now if payment_status == 'edukas' else None,
+                paid_at=now if random.random() < 0.6 else None,
             )
+            for booking in bookings
+        ]
+        Payment.objects.bulk_create(payments, batch_size=1000)
 
         for _ in range(60):
             Review.objects.create(
@@ -196,7 +223,7 @@ class Command(BaseCommand):
             )
 
         self.stdout.write(self.style.SUCCESS(
-            'Demoandmed loodud: 40 kasutajat, 3 kino, 9 saali, 864 istekohta, '
-            '20 filmi, 10 žanri, 120 seanssi, 120 broneeringut, '
-            f'{len(booked_seats)} broneeritud kohta, 120 makset ja 60 arvustust.'
+            f'Demoandmed loodud: 40 kasutajat, 3 kino, 9 saali, 864 istekohta, '
+            f'20 filmi, 10 žanri, {screening_count} seanssi, {ticket_count} broneeringut, '
+            f'{len(ticket_records)} broneeritud kohta, {ticket_count} makset ja 60 arvustust.'
         ))
