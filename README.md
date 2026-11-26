@@ -36,6 +36,7 @@ on järgmine arendusetapp.
 | Nimi | Tööriist | Dokumentatsioon |
 | --- | --- | --- |
 | Jan Tahvonen | Locust | [Locust load testing](docs/testing/locust.md) |
+| Siim | pgbench | [pgbench database load testing](docs/testing/pgbench.md) |
 
 ## Eeldused
 
